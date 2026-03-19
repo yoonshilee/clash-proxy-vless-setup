@@ -2,8 +2,8 @@
 
 load_project_config() {
     local repo_root="$1"
-    local example_config="${repo_root}/config/setup.conf.example"
-    local user_config="${repo_root}/config/setup.conf"
+    local example_config="${repo_root}/server/config/setup.conf.example"
+    local user_config="${repo_root}/server/config/setup.conf"
 
     [[ -f "${example_config}" ]] || {
         echo "Missing config template: ${example_config}" >&2
@@ -32,3 +32,4 @@ load_project_config() {
 should_autogenerate() {
     [[ -z "${1:-}" || "${1}" == "AUTO_GENERATE" ]]
 }
+

@@ -1,4 +1,4 @@
-# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+# Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 
 prepend:
   - IP-CIDR,<server-public-ip>/32,DIRECT,no-resolve
@@ -27,3 +27,4 @@ prepend:
 append: []
 
 delete: []
+

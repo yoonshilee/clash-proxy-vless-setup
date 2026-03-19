@@ -1,4 +1,4 @@
-# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+# Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 
 mode: rule
 mixed-port: 7897
@@ -63,3 +63,4 @@ rules:
 - DOMAIN-SUFFIX,oaistatic.com,PROXY
 - DOMAIN-SUFFIX,oaiusercontent.com,PROXY
 - MATCH,PROXY
+

@@ -3,10 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-DOCS_DIR="${REPO_ROOT}/docs/active-config"
+DOCS_DIR="${SCRIPT_DIR}/active-config"
 
-# shellcheck source=scripts/load-config.sh
-source "${SCRIPT_DIR}/load-config.sh"
+# shellcheck source=server/scripts/load-config.sh
+source "${REPO_ROOT}/server/scripts/load-config.sh"
 load_project_config "${REPO_ROOT}"
 
 public_ip="${RENDER_PUBLIC_IP:-${PUBLIC_IP:-<server-public-ip>}}"
@@ -26,7 +26,7 @@ fi
 mkdir -p "${DOCS_DIR}"
 
 cat > "${DOCS_DIR}/clash-verge.yaml" <<EOF
-# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+# Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 
 mode: ${CLASH_GLOBAL_MODE}
 mixed-port: ${CLASH_MIXED_PORT}
@@ -86,7 +86,7 @@ rules:
 EOF
 
 cat > "${DOCS_DIR}/clash-verge-check.yaml" <<EOF
-# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+# Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 
 mode: ${CLASH_RULE_MODE}
 mixed-port: ${CLASH_MIXED_PORT}
@@ -154,7 +154,7 @@ rules:
 EOF
 
 cat > "${DOCS_DIR}/custom-routing-rules.yaml" <<EOF
-# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+# Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 
 prepend:
   - IP-CIDR,${public_ip}/32,DIRECT,no-resolve
@@ -188,7 +188,7 @@ EOF
 cat > "${DOCS_DIR}/opencode-proxy.cmd" <<EOF
 @echo off
 
-REM Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+REM Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 REM opencode (Bun runtime) does NOT respect WinINET system proxy on Windows.
 REM It DOES respect HTTP_PROXY/HTTPS_PROXY env vars.
 REM We set them here when Clash mixed port is reachable.
@@ -207,3 +207,5 @@ if "%_CLASH_RUNNING%"=="yes" (
 
 "%~dp0opencode.cmd" %*
 EOF
+
+

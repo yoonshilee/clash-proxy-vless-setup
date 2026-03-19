@@ -1,5 +1,5 @@
-# Copy this file to config/setup.conf and edit the values you want to override.
-# install.sh, uninstall.sh, and scripts/render-client-configs.sh all read from it.
+# Copy this file to server/config/setup.conf and edit the values you want to override.
+# server/install.sh, server/uninstall.sh, and client/render-client-configs.sh all read from it.
 
 # Server-side settings
 SS_PORT=8388
@@ -15,3 +15,4 @@ CLASH_PROXY_NAME=example-ss
 CLASH_MIXED_PORT=7897
 CLASH_GLOBAL_MODE=global
 CLASH_RULE_MODE=rule
+

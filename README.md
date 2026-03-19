@@ -1,107 +1,66 @@
 # clash-proxy-shadowsocks-setup
 
-Automated setup for a self-hosted Shadowsocks server with an HTTPS Clash-compatible subscription endpoint on Linux.
+This repository is split into two clearly separated parts:
 
-This repository targets CentOS Stream 9, RHEL 9, and Fedora. The installer builds `shadowsocks-libev`, installs Caddy, opens the required firewall ports, applies SELinux port labels, and generates a subscription URL that can be imported into Clash Verge or other Clash-compatible clients.
+- `server/`: VPS-side installation and removal scripts
+- `client/`: local Clash client examples and helper files
 
-All user-editable values are centralized in [config/setup.conf.example](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/config/setup.conf.example). Copy it to `config/setup.conf` and edit that file instead of modifying scripts directly.
+## Server Setup
 
-## What This Project Does
+Use the files under [server](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server).
 
-- Installs `shadowsocks-libev` from source
-- Creates a systemd service from `templates/ss-server@.service`
-- Installs and configures Caddy to serve a subscription file over HTTPS
-- Reads deployment values from `config/setup.conf` when present
-- Generates random credentials when `SS_PASSWORD` or `SUB_TOKEN` is set to `AUTO_GENERATE`
-- Renders client example files in `docs/active-config/` from the same config source
-- Opens the required `firewalld` ports and updates SELinux labels when needed
+Main files:
 
-## Quick Start
+- [server/install.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/install.sh)
+- [server/uninstall.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/uninstall.sh)
+- [server/config/setup.conf.example](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/config/setup.conf.example)
+- [server/templates/ss-server@.service](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/templates/ss-server@.service)
+
+Quick start on the VPS:
 
 ```bash
 git clone <this-repo> clash-proxy-shadowsocks-setup
 cd clash-proxy-shadowsocks-setup
-cp config/setup.conf.example config/setup.conf
-# edit config/setup.conf if needed
-sudo bash install.sh
+cp server/config/setup.conf.example server/config/setup.conf
+# edit server/config/setup.conf if needed
+sudo bash server/install.sh
 ```
 
-The scripts load values in this order:
+The server installer:
 
-- `config/setup.conf.example`
-- `config/setup.conf` if it exists
-- runtime-generated values for fields set to `AUTO_GENERATE`
+- installs `shadowsocks-libev`
+- installs and configures Caddy
+- opens firewall ports
+- applies SELinux port labels
+- generates an HTTPS subscription URL for Clash clients
 
-When the script finishes, it prints an HTTPS subscription URL like:
+## Local Client Setup
 
-```text
-https://<public-ip>.sslip.io/<subscription-token>.yaml
-```
+Use the files under [client](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client).
 
-Import that URL into Clash Verge with `Profiles -> Import from URL`.
+Main files:
 
-## Config File
+- [client/README.md](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/README.md)
+- [client/render-client-configs.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/render-client-configs.sh)
+- [client/active-config/clash-verge.yaml](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/active-config/clash-verge.yaml)
+- [client/active-config/clash-verge-check.yaml](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/active-config/clash-verge-check.yaml)
+- [client/active-config/custom-routing-rules.yaml](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/active-config/custom-routing-rules.yaml)
 
-The main variables are:
+The local client does not run the VPS install scripts. In most cases you only need the subscription URL printed by `server/install.sh`, then import it into Clash Verge with `Profiles -> Import from URL`.
 
-- `SS_PORT`
-- `SS_METHOD`
-- `PUBLIC_IP`
-- `SS_PASSWORD`
-- `SUB_TOKEN`
-- `CLASH_PROXY_NAME`
-- `CLASH_MIXED_PORT`
-- `CLASH_GLOBAL_MODE`
-- `CLASH_RULE_MODE`
+## Shared Config
 
-Use `AUTO_GENERATE` for secrets that should be created during installation.
+User-editable values are centralized in:
 
-## Repository Layout
+- [server/config/setup.conf.example](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/config/setup.conf.example)
 
-```text
-clash-proxy-shadowsocks-setup/
-|-- config/
-|   `-- setup.conf.example
-|-- docs/
-|   |-- active-config/
-|   `-- manual-client-configuration.md
-|-- scripts/
-|   |-- load-config.sh
-|   `-- render-client-configs.sh
-|-- templates/
-|   `-- ss-server@.service
-|-- install.sh
-`-- uninstall.sh
-```
+Copy it to `server/config/setup.conf`. That private file is ignored by Git.
 
-## Files Generated On The Server
+These scripts read from the same config source:
 
-| Path | Purpose |
-|------|---------|
-| `/etc/shadowsocks-libev/server.json` | Server-side Shadowsocks configuration |
-| `/etc/systemd/system/ss-server@.service` | Installed systemd unit |
-| `/var/lib/clash-sub/<token>.yaml` | Clash subscription file served by Caddy |
-| `/etc/caddy/Caddyfile` | Main Caddy configuration |
-| `/etc/caddy/Caddyfile.d/clash-sub.caddyfile` | HTTPS site snippet for the subscription endpoint |
-| `/etc/systemd/system/caddy.service.d/env.conf` | Public IP environment override for Caddy |
-
-## Optional Client Examples
-
-The files under `docs/active-config/` are generated by [scripts/render-client-configs.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/scripts/render-client-configs.sh). They are reference material for client-side setup and are not required for the server install itself.
-
-If you change `config/setup.conf`, regenerate the example files with:
-
-```bash
-bash scripts/render-client-configs.sh
-```
-
-## Requirements And Notes
-
-- Run the installer as `root` or with `sudo`
-- The server must have a public IPv4 address reachable from the internet
-- Ports `80`, `22`, and your chosen Shadowsocks port must be available
-- HTTPS is provided through `sslip.io`, so public DNS is derived from the IP address
-- `uninstall.sh` now reads `SS_PORT` from the same config file, so keep `config/setup.conf` aligned with the deployed port
+- [server/install.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/install.sh)
+- [server/uninstall.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/uninstall.sh)
+- [client/render-client-configs.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/render-client-configs.sh)
 
 ## Share-Safe Checklist
 
@@ -110,26 +69,4 @@ Do not commit:
 - real server IP addresses
 - real Shadowsocks passwords
 - live subscription URLs
-- provider keys, tokens, or personal local client snapshots
-- your private `config/setup.conf`
-
-## Management
-
-```bash
-systemctl status ss-server@server
-systemctl restart ss-server@server
-journalctl -u ss-server@server -e --no-pager
-
-systemctl status caddy
-journalctl -u caddy -e --no-pager
-
-firewall-cmd --list-all
-getenforce
-semanage port -l | grep <your-port>
-```
-
-## Uninstall
-
-```bash
-sudo bash uninstall.sh
-```
+- your private `server/config/setup.conf`

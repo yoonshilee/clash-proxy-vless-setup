@@ -6,11 +6,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
 
-# shellcheck source=scripts/load-config.sh
+# shellcheck source=server/scripts/load-config.sh
 source "${SCRIPT_DIR}/scripts/load-config.sh"
-load_project_config "${SCRIPT_DIR}"
+load_project_config "${REPO_ROOT}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -288,7 +289,7 @@ render_client_examples() {
     RENDER_SS_METHOD="${ss_method}" \
     RENDER_SS_PASSWORD="${ss_password}" \
     RENDER_SUB_TOKEN="${sub_token}" \
-    bash "${SCRIPT_DIR}/scripts/render-client-configs.sh"
+    bash "${REPO_ROOT}/client/render-client-configs.sh"
 }
 
 print_summary() {

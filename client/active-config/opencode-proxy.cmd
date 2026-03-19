@@ -1,6 +1,6 @@
 @echo off
 
-REM Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+REM Generated from server/config/setup.conf(.example) by client/render-client-configs.sh
 REM opencode (Bun runtime) does NOT respect WinINET system proxy on Windows.
 REM It DOES respect HTTP_PROXY/HTTPS_PROXY env vars.
 REM We set them here when Clash mixed port is reachable.
@@ -18,3 +18,4 @@ if "%_CLASH_RUNNING%"=="yes" (
 )
 
 "%~dp0opencode.cmd" %*
+

@@ -5,10 +5,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# shellcheck source=scripts/load-config.sh
+# shellcheck source=server/scripts/load-config.sh
 source "${SCRIPT_DIR}/scripts/load-config.sh"
-load_project_config "${SCRIPT_DIR}"
+load_project_config "${REPO_ROOT}"
 
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 
