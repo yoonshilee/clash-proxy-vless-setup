@@ -1,72 +1,72 @@
 # clash-proxy-shadowsocks-setup
 
-This repository is split into two clearly separated parts:
+A split server-and-client repository for deploying a self-hosted Shadowsocks service on a VPS and consuming it from a local Clash client.
 
-- `server/`: VPS-side installation and removal scripts
-- `client/`: local Clash client examples and helper files
+## What This Project Does
 
-## Server Setup
+This project provides:
 
-Use the files under [server](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server).
+- a VPS-side installer for `shadowsocks-libev`
+- automatic Caddy setup for serving a Clash subscription over HTTPS
+- firewall and SELinux handling for the server port
+- local Clash example files for importing or adapting the generated proxy connection
 
-Main files:
+## Repository Structure
 
-- [server/install.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/install.sh)
-- [server/uninstall.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/uninstall.sh)
-- [server/config/setup.conf.example](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/config/setup.conf.example)
-- [server/templates/ss-server@.service](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/templates/ss-server@.service)
+- `server/`: VPS-side installation, removal, shared config template, and systemd template
+- `client/`: local Clash example files and helper scripts
 
-Quick start on the VPS:
+## Main Outcome
 
-```bash
-git clone <this-repo> clash-proxy-shadowsocks-setup
-cd clash-proxy-shadowsocks-setup
-cp server/config/setup.conf.example server/config/setup.conf
-# edit server/config/setup.conf if needed
-sudo bash server/install.sh
-```
-
-The server installer:
-
-- installs `shadowsocks-libev`
-- installs and configures Caddy
-- opens firewall ports
-- applies SELinux port labels
-- generates an HTTPS subscription URL for Clash clients
-
-## Local Client Setup
-
-Use the files under [client](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client).
-
-Main files:
-
-- [client/README.md](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/README.md)
-- [client/render-client-configs.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/render-client-configs.sh)
-- [client/active-config/clash-verge.yaml](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/active-config/clash-verge.yaml)
-- [client/active-config/clash-verge-check.yaml](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/active-config/clash-verge-check.yaml)
-- [client/active-config/custom-routing-rules.yaml](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/active-config/custom-routing-rules.yaml)
-
-The local client does not run the VPS install scripts. In most cases you only need the subscription URL printed by `server/install.sh`, then import it into Clash Verge with `Profiles -> Import from URL`.
+After the VPS is installed, the server exposes a subscription URL that can be imported into Clash Verge or another Clash-compatible client on a personal computer.
 
 ## Shared Config
 
-User-editable values are centralized in:
+User-editable values are driven by `server/config/setup.conf`.
 
-- [server/config/setup.conf.example](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/config/setup.conf.example)
+Start from:
 
-Copy it to `server/config/setup.conf`. That private file is ignored by Git.
+- `server/config/setup.conf.example`
 
-These scripts read from the same config source:
+The same values are reused by the VPS scripts and the local client example generator.
 
-- [server/install.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/install.sh)
-- [server/uninstall.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/server/uninstall.sh)
-- [client/render-client-configs.sh](/d:/Projects/Personal%20Project/clash-proxy-shadowsocks-setup/client/render-client-configs.sh)
+Important variables include:
 
-## Share-Safe Checklist
+- `SS_PORT`
+- `SS_METHOD`
+- `PUBLIC_IP`
+- `SS_PASSWORD`
+- `SUB_TOKEN`
+- `CLASH_PROXY_NAME`
+- `CLASH_MIXED_PORT`
+- `CLASH_GLOBAL_MODE`
+- `CLASH_RULE_MODE`
 
-Do not commit:
+## Local Client Setup
 
-- real server IP addresses
-- real Shadowsocks passwords
-- live subscription URLs
-- your private `server/config/setup.conf`
+The local client side lives under `client/`. These files are not deployed to the VPS.
+
+Typical local usage after the VPS installation is complete:
+
+1. Get the subscription URL printed by `server/install.sh`.
+2. Import that URL into Clash Verge.
+3. If needed, create a manual node with the same server IP, port, method, and password.
+
+If you want to regenerate the local example files from the shared config values, run:
+
+```bash
+bash client/render-client-configs.sh
+```
+
+Main local example files:
+
+- `client/active-config/clash-verge.yaml`
+- `client/active-config/clash-verge-check.yaml`
+- `client/active-config/custom-routing-rules.yaml`
+- `client/active-config/opencode-proxy.cmd`
+
+## Notes
+
+- VPS-side settings are driven by `server/config/setup.conf`
+- local Clash examples are generated from the same shared values for convenience
+- private server IPs, passwords, tokens, and local private config should not be committed
