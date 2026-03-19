@@ -1,0 +1,17 @@
+# Copy this file to config/setup.conf and edit the values you want to override.
+# install.sh, uninstall.sh, and scripts/render-client-configs.sh all read from it.
+
+# Server-side settings
+SS_PORT=8388
+SS_METHOD=chacha20-ietf-poly1305
+PUBLIC_IP=
+
+# Use AUTO_GENERATE to let install.sh create a random value.
+SS_PASSWORD=AUTO_GENERATE
+SUB_TOKEN=AUTO_GENERATE
+
+# Client example settings
+CLASH_PROXY_NAME=example-ss
+CLASH_MIXED_PORT=7897
+CLASH_GLOBAL_MODE=global
+CLASH_RULE_MODE=rule

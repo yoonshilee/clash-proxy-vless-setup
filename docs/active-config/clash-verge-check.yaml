@@ -1,0 +1,69 @@
+# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+
+mode: rule
+mixed-port: 7897
+allow-lan: false
+log-level: info
+ipv6: true
+external-controller: ''
+secret: set-your-secret
+unified-delay: true
+profile:
+  store-selected: true
+tun:
+  enable: false
+  stack: gvisor
+  auto-route: true
+  strict-route: false
+  auto-detect-interface: true
+  dns-hijack:
+  - any:53
+external-controller-pipe: \\.\pipe\verge-mihomo
+external-controller-cors:
+  allow-private-network: true
+  allow-origins:
+  - tauri://localhost
+  - http://tauri.localhost
+  - https://yacd.metacubex.one
+  - https://metacubex.github.io
+  - https://board.zash.run.place
+proxies:
+- name: example-ss
+  type: ss
+  server: <server-public-ip>
+  port: 8388
+  cipher: chacha20-ietf-poly1305
+  password: <generated-password>
+  udp: true
+proxy-groups:
+- name: PROXY
+  type: select
+  proxies:
+  - example-ss
+rules:
+- DOMAIN-SUFFIX,bitwarden.com,DIRECT
+- DOMAIN-SUFFIX,bitwarden.eu,DIRECT
+- DOMAIN,vault.bitwarden.com,DIRECT
+- DOMAIN,vault.bitwarden.eu,DIRECT
+- GEOSITE,microsoft,DIRECT
+- DOMAIN-SUFFIX,outlook.com,DIRECT
+- DOMAIN-SUFFIX,office.com,DIRECT
+- DOMAIN-SUFFIX,office365.com,DIRECT
+- DOMAIN-SUFFIX,microsoft.com,DIRECT
+- DOMAIN-SUFFIX,live.com,DIRECT
+- DOMAIN-SUFFIX,live.net,DIRECT
+- DOMAIN-SUFFIX,msftconnecttest.com,DIRECT
+- DOMAIN-SUFFIX,msftncsi.com,DIRECT
+- DOMAIN-SUFFIX,msauth.net,DIRECT
+- DOMAIN-SUFFIX,msftauth.net,DIRECT
+- DOMAIN-SUFFIX,msidentity.com,DIRECT
+- DOMAIN-SUFFIX,onestore.ms,DIRECT
+- DOMAIN-SUFFIX,global.ssl.fastly.net,DIRECT
+- DOMAIN-SUFFIX,azure.com,DIRECT
+- DOMAIN-SUFFIX,azureedge.net,DIRECT
+- GEOSITE,openai,PROXY
+- DOMAIN-SUFFIX,openai.com,PROXY
+- DOMAIN-SUFFIX,chatgpt.com,PROXY
+- DOMAIN-SUFFIX,oaistatic.com,PROXY
+- DOMAIN-SUFFIX,oaiusercontent.com,PROXY
+- MATCH,PROXY

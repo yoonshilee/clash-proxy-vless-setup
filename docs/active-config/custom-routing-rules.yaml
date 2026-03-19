@@ -1,0 +1,33 @@
+# Generated from config/setup.conf(.example) by scripts/render-client-configs.sh
+
+prepend:
+  - IP-CIDR,<server-public-ip>/32,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,bitwarden.com,DIRECT
+  - DOMAIN-SUFFIX,bitwarden.eu,DIRECT
+  - DOMAIN,vault.bitwarden.com,DIRECT
+  - DOMAIN,vault.bitwarden.eu,DIRECT
+  - GEOSITE,microsoft,DIRECT
+  - DOMAIN-SUFFIX,outlook.com,DIRECT
+  - DOMAIN-SUFFIX,office.com,DIRECT
+  - DOMAIN-SUFFIX,office365.com,DIRECT
+  - DOMAIN-SUFFIX,microsoft.com,DIRECT
+  - DOMAIN-SUFFIX,live.com,DIRECT
+  - DOMAIN-SUFFIX,live.net,DIRECT
+  - DOMAIN-SUFFIX,msftconnecttest.com,DIRECT
+  - DOMAIN-SUFFIX,msftncsi.com,DIRECT
+  - DOMAIN-SUFFIX,msauth.net,DIRECT
+  - DOMAIN-SUFFIX,msftauth.net,DIRECT
+  - DOMAIN-SUFFIX,msidentity.com,DIRECT
+  - DOMAIN-SUFFIX,onestore.ms,DIRECT
+  - DOMAIN-SUFFIX,global.ssl.fastly.net,DIRECT
+  - DOMAIN-SUFFIX,azure.com,DIRECT
+  - DOMAIN-SUFFIX,azureedge.net,DIRECT
+  - GEOSITE,openai,PROXY
+  - DOMAIN-SUFFIX,openai.com,PROXY
+  - DOMAIN-SUFFIX,chatgpt.com,PROXY
+  - DOMAIN-SUFFIX,oaistatic.com,PROXY
+  - DOMAIN-SUFFIX,oaiusercontent.com,PROXY
+
+append: []
+
+delete: []

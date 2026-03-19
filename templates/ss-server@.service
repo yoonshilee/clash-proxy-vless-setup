@@ -1,0 +1,13 @@
+[Unit]
+Description=Shadowsocks-libev Server (%i)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ss-server -c /etc/shadowsocks-libev/%i.json
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=51200
+
+[Install]
+WantedBy=multi-user.target
