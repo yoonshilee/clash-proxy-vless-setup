@@ -28,7 +28,7 @@ external-controller-cors:
   - https://metacubex.github.io
   - https://board.zash.run.place
 proxies:
-- name: example-vless-reality
+- name: vless-reality
   type: vless
   server: <server-public-ip>
   port: 443
@@ -47,7 +47,7 @@ proxy-groups:
 - name: PROXY
   type: select
   proxies:
-  - example-vless-reality
+  - vless-reality
 rules:
 - GEOSITE,microsoft,DIRECT
 - DOMAIN-SUFFIX,outlook.com,DIRECT
