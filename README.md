@@ -1,24 +1,30 @@
 # clash-proxy-shadowsocks-setup
 
-A split server-and-client repository for deploying a self-hosted Shadowsocks service on a VPS and consuming it from a local Clash client.
+A split server-and-client repository for migrating a VPS from legacy Shadowsocks to self-hosted `Xray VLESS + REALITY`, while keeping local Clash/Mihomo client examples in the same project.
 
 ## What This Project Does
 
 This project provides:
 
-- a VPS-side installer for `shadowsocks-libev`
-- automatic Caddy setup for serving a Clash subscription over HTTPS
-- firewall and SELinux handling for the server port
-- local Clash example files for importing or adapting the generated proxy connection
+- a VPS-side installer for `Xray` using `VLESS + REALITY + XTLS Vision`
+- UDP-capable Mihomo/Clash client profiles using `packet-encoding: xudp`
+- automatic Caddy setup for serving a Clash/Mihomo subscription over HTTPS on port `8443`
+- firewall and SELinux handling for the server port and subscription port
+- legacy Shadowsocks shutdown during migration without deleting its existing server config
 
 ## Repository Structure
 
-- `server/`: VPS-side installation, removal, shared config template, and systemd template
-- `client/`: local Clash example files and helper scripts
+- `server/`: VPS-side installation, removal, shared config template, and systemd templates
+- `client/`: local Clash/Mihomo example files and helper scripts
 
 ## Main Outcome
 
-After the VPS is installed, the server exposes a subscription URL that can be imported into Clash Verge or another Clash-compatible client on a personal computer.
+After the VPS install completes, the server exposes:
+
+- a `VLESS + REALITY` node on port `443`
+- a subscription URL like `https://<public-ip>.sslip.io:8443/<token>.yaml`
+
+The generated node is meant for Clash Verge, Mihomo, or another compatible client on a personal computer.
 
 ## Shared Config
 
@@ -32,15 +38,33 @@ The same values are reused by the VPS scripts and the local client example gener
 
 Important variables include:
 
-- `SS_PORT`
-- `SS_METHOD`
+- `XRAY_PORT`
 - `PUBLIC_IP`
-- `SS_PASSWORD`
+- `REALITY_SERVER_NAME`
+- `REALITY_DEST`
+- `REALITY_FINGERPRINT`
+- `SUBSCRIPTION_PORT`
+- `XRAY_UUID`
+- `REALITY_PRIVATE_KEY`
+- `REALITY_PUBLIC_KEY`
+- `REALITY_SHORT_ID`
 - `SUB_TOKEN`
 - `CLASH_PROXY_NAME`
 - `CLASH_MIXED_PORT`
 - `CLASH_GLOBAL_MODE`
 - `CLASH_RULE_MODE`
+
+## VPS Migration Behavior
+
+`server/install.sh` is designed for migration from the old Shadowsocks setup on the VPS.
+
+During install it will:
+
+1. install or update `xray`
+2. generate REALITY credentials when configured as `AUTO_GENERATE`
+3. stop and disable `ss-server@server` if that legacy service exists
+4. keep `/etc/shadowsocks-libev/server.json` in place
+5. reconfigure firewall rules away from the old Shadowsocks port and onto the new Xray/Caddy ports
 
 ## Local Client Setup
 
@@ -49,8 +73,8 @@ The local client side lives under `client/`. These files are not deployed to the
 Typical local usage after the VPS installation is complete:
 
 1. Get the subscription URL printed by `server/install.sh`.
-2. Import that URL into Clash Verge.
-3. If needed, create a manual node with the same server IP, port, method, and password.
+2. Import that URL into Clash Verge or Mihomo.
+3. If needed, create a manual node with the same server IP, port, UUID, REALITY public key, short ID, and server name.
 
 If you want to regenerate the local example files from the shared config values, run:
 
@@ -68,5 +92,6 @@ Main local example files:
 ## Notes
 
 - VPS-side settings are driven by `server/config/setup.conf`
-- local Clash examples are generated from the same shared values for convenience
-- private server IPs, passwords, tokens, and local private config should not be committed
+- local Clash/Mihomo examples are generated from the same shared values for convenience
+- private UUIDs, REALITY keys, short IDs, subscription URLs, and local private config should not be committed
+- the subscription service uses `8443` because `443` is reserved for the REALITY listener

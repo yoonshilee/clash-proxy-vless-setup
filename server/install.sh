@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Shadowsocks + Caddy (HTTPS Clash subscription) setup
+# Xray VLESS + REALITY + Caddy subscription setup
 # Supports: CentOS Stream 9 / RHEL 9 / Fedora
 #
 set -euo pipefail
@@ -42,21 +42,65 @@ random_hex() {
     openssl rand -hex "$1"
 }
 
-ss_password="${SS_PASSWORD}"
-ss_port="${SS_PORT}"
-ss_method="${SS_METHOD}"
+random_uuid() {
+    cat /proc/sys/kernel/random/uuid
+}
+
+xray_port="${XRAY_PORT}"
+xray_uuid="${XRAY_UUID}"
+reality_private_key="${REALITY_PRIVATE_KEY}"
+reality_public_key="${REALITY_PUBLIC_KEY}"
+reality_short_id="${REALITY_SHORT_ID}"
+reality_server_name="${REALITY_SERVER_NAME}"
+reality_dest="${REALITY_DEST}"
+reality_fingerprint="${REALITY_FINGERPRINT}"
 sub_token="${SUB_TOKEN}"
 public_ip="${PUBLIC_IP}"
+subscription_port="${SUBSCRIPTION_PORT}"
 
-configure_runtime_values() {
+detect_public_ip() {
+    curl -s4 --max-time 5 ifconfig.me || hostname -I | awk '{print $1}'
+}
+
+get_legacy_ss_port() {
+    local json="/etc/shadowsocks-libev/server.json"
+
+    if [[ -f "${json}" ]]; then
+        python3 - <<'PY'
+import json
+from pathlib import Path
+
+path = Path('/etc/shadowsocks-libev/server.json')
+try:
+    data = json.loads(path.read_text())
+    print(data.get('server_port', ''))
+except Exception:
+    print('')
+PY
+    fi
+}
+
+install_xray() {
+    if command -v xray &>/dev/null; then
+        info "Xray already installed: $(xray version 2>&1 | head -1)"
+        return
+    fi
+
+    info "Installing Xray using the official installer..."
+    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install --without-logfiles
+    info "Xray installed: $(xray version 2>&1 | head -1)"
+}
+
+ensure_runtime_values() {
+    local key_output=""
     local detected_ip=""
     local input=""
 
-    if should_autogenerate "${ss_password}"; then
-        ss_password="$(random_hex 16)"
-        info "Generated Shadowsocks password."
+    if should_autogenerate "${xray_uuid}"; then
+        xray_uuid="$(random_uuid)"
+        info "Generated VLESS UUID."
     else
-        info "Using Shadowsocks password from config file."
+        info "Using VLESS UUID from config file."
     fi
 
     if should_autogenerate "${sub_token}"; then
@@ -66,63 +110,109 @@ configure_runtime_values() {
         info "Using subscription token from config file."
     fi
 
+    if should_autogenerate "${reality_short_id}"; then
+        reality_short_id="$(random_hex 8)"
+        info "Generated REALITY short ID."
+    else
+        info "Using REALITY short ID from config file."
+    fi
+
+    if should_autogenerate "${reality_private_key}"; then
+        key_output="$(xray x25519)"
+        reality_private_key="$(awk -F': ' '/Private key|PrivateKey/ {print $2}' <<<"${key_output}")"
+        reality_public_key="$(awk -F': ' '/Public key|PublicKey|Password/ {print $2}' <<<"${key_output}")"
+        info "Generated REALITY key pair."
+    elif should_autogenerate "${reality_public_key}"; then
+        key_output="$(xray x25519 -i "${reality_private_key}")"
+        reality_public_key="$(awk -F': ' '/Public key|PublicKey|Password/ {print $2}' <<<"${key_output}")"
+        info "Derived REALITY public key from config private key."
+    else
+        info "Using REALITY key pair from config file."
+    fi
+
     if [[ -z "${public_ip}" ]]; then
-        detected_ip="$(curl -s4 --max-time 5 ifconfig.me || hostname -I | awk '{print $1}')"
+        detected_ip="$(detect_public_ip)"
         public_ip="${detected_ip}"
     fi
 
     echo ""
     echo "=== Configuration Summary ==="
-    echo "  SS port           : ${ss_port}"
-    echo "  Encryption        : ${ss_method}"
+    echo "  Xray port         : ${xray_port}"
     echo "  Public IP         : ${public_ip}"
     echo "  Proxy name        : ${CLASH_PROXY_NAME}"
+    echo "  Reality target    : ${reality_dest}"
+    echo "  Reality SNI       : ${reality_server_name}"
+    echo "  Subscription port : ${subscription_port}"
     echo "  Clash mixed port  : ${CLASH_MIXED_PORT}"
+    echo "  UDP support       : enabled (XUDP)"
     echo ""
 
     read -rp "Proceed with these settings? [Y/n] " input
     [[ "${input:-Y}" =~ ^[Yy]$ ]] || { info "Aborted."; exit 0; }
 }
 
-install_shadowsocks() {
-    if command -v ss-server &>/dev/null; then
-        info "shadowsocks-libev already installed: $(ss-server -h 2>&1 | head -1)"
-        return
-    fi
-
-    info "Installing shadowsocks-libev from source..."
-    dnf install -y epel-release
-    dnf install -y gcc make autoconf automake libtool \
-        libev-devel mbedtls-devel pcre-devel libsodium-devel c-ares-devel
-
-    local tmpdir
-    tmpdir="$(mktemp -d)"
-    git clone --depth 1 --branch v3.3.6 \
-        https://github.com/shadowsocks/shadowsocks-libev.git "${tmpdir}/shadowsocks-libev"
-    pushd "${tmpdir}/shadowsocks-libev" >/dev/null
-    git submodule update --init --recursive
-    ./autogen.sh
-    ./configure
-    make
-    make install
-    popd >/dev/null
-    rm -rf "${tmpdir}"
-
-    info "ss-server installed: $(ss-server -h 2>&1 | head -1)"
+disable_legacy_shadowsocks() {
+    info "Stopping and disabling legacy Shadowsocks service if present..."
+    systemctl disable --now "ss-server@server" 2>/dev/null || true
 }
 
-configure_shadowsocks() {
-    info "Writing Shadowsocks config..."
-    install -d -m 0755 /etc/shadowsocks-libev
+configure_xray() {
+    local config_dir="/usr/local/etc/xray"
+    local json="${config_dir}/config.json"
 
-    local json="/etc/shadowsocks-libev/server.json"
+    info "Writing Xray config..."
+    install -d -m 0755 "${config_dir}"
+
     cat > "${json}" <<EOF
 {
-    "server": "0.0.0.0",
-    "server_port": ${ss_port},
-    "password": "${ss_password}",
-    "method": "${ss_method}",
-    "mode": "tcp_and_udp"
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "listen": "0.0.0.0",
+      "port": ${xray_port},
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "${xray_uuid}",
+            "flow": "xtls-rprx-vision"
+          }
+        ],
+        "decryption": "none"
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls", "quic"]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "target": "${reality_dest}",
+          "xver": 0,
+          "serverNames": ["${reality_server_name}"],
+          "privateKey": "${reality_private_key}",
+          "shortIds": ["${reality_short_id}"]
+        },
+        "sockopt": {
+          "tcpFastOpen": true
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "tag": "direct"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "block"
+    }
+  ]
 }
 EOF
     chmod 0600 "${json}"
@@ -131,11 +221,12 @@ EOF
 }
 
 install_systemd_unit() {
-    info "Installing systemd template unit..."
-    cp "${TEMPLATES_DIR}/ss-server@.service" /etc/systemd/system/ss-server@.service
+    info "Installing Xray systemd unit..."
+    cp "${TEMPLATES_DIR}/xray.service" /etc/systemd/system/xray.service
     systemctl daemon-reload
-    systemctl enable --now "ss-server@server"
-    info "ss-server@server enabled and started."
+    systemctl enable xray
+    systemctl restart xray
+    info "xray enabled and restarted."
 }
 
 install_caddy() {
@@ -162,7 +253,8 @@ configure_caddy() {
         install -d -m 0750 -o clashsub -g caddy "${sub_dir}"
     }
 
-    info "Generating Clash YAML..."
+    info "Generating Mihomo subscription YAML..."
+    rm -f "${sub_dir}"/*.yaml
     cat > "${yaml_file}" <<YAML
 port: 7890
 socks-port: 7891
@@ -173,12 +265,20 @@ external-controller: 127.0.0.1:9090
 
 proxies:
   - name: "${CLASH_PROXY_NAME}"
-    type: ss
+    type: vless
     server: ${public_ip}
-    port: ${ss_port}
-    cipher: ${ss_method}
-    password: ${ss_password}
+    port: ${xray_port}
+    uuid: ${xray_uuid}
+    network: tcp
     udp: true
+    tls: true
+    flow: xtls-rprx-vision
+    servername: ${reality_server_name}
+    client-fingerprint: ${reality_fingerprint}
+    packet-encoding: xudp
+    reality-opts:
+      public-key: ${reality_public_key}
+      short-id: ${reality_short_id}
 
 proxy-groups:
   - name: "Auto"
@@ -194,9 +294,9 @@ YAML
     chown clashsub:caddy "${yaml_file}"
 
     cat > "${sub_dir}/index.html" <<HTML
-<!DOCTYPE html><html><body><h2>Clash subscription</h2>
-<p>Use this URL in Clash Verge:</p>
-<code>https://${domain}/${sub_token}.yaml</code>
+<!DOCTYPE html><html><body><h2>Mihomo subscription</h2>
+<p>Use this URL in Clash Verge / Mihomo:</p>
+<code>https://${domain}:${subscription_port}/${sub_token}.yaml</code>
 </body></html>
 HTML
 
@@ -206,21 +306,23 @@ HTML
     cat > /etc/caddy/Caddyfile <<EOF
 {
     email admin@${domain}
+    http_port 80
+    https_port ${subscription_port}
 }
 
-http://\${PUBLIC_IP} {
-    redir https://${domain}{uri}
+http://${public_ip} {
+    redir https://${domain}:${subscription_port}{uri}
 }
 
 http://${domain} {
-    redir https://{host}{uri}
+    redir https://${domain}:${subscription_port}{uri}
 }
 
 import /etc/caddy/Caddyfile.d/*.caddyfile
 EOF
 
     cat > /etc/caddy/Caddyfile.d/clash-sub.caddyfile <<EOF
-https://${domain} {
+https://${domain}:${subscription_port} {
     root * ${sub_dir}
     file_server
 
@@ -239,80 +341,113 @@ https://${domain} {
 }
 EOF
 
-    mkdir -p /etc/systemd/system/caddy.service.d
-    cat > /etc/systemd/system/caddy.service.d/env.conf <<EOF
-[Service]
-Environment=PUBLIC_IP=${public_ip}
-EOF
+    rm -f /etc/systemd/system/caddy.service.d/env.conf
+    rmdir /etc/systemd/system/caddy.service.d 2>/dev/null || true
 
     systemctl daemon-reload
-    systemctl enable --now caddy || systemctl restart caddy
-    info "Caddy configured and started."
+    systemctl enable caddy
+    systemctl restart caddy
+    info "Caddy configured and restarted."
 }
 
 configure_firewall() {
+    local legacy_ss_port=""
+
     info "Configuring firewalld..."
     systemctl is-active firewalld &>/dev/null || systemctl enable --now firewalld
 
     firewall-cmd --permanent --add-service=http
     firewall-cmd --permanent --add-service=ssh
-    firewall-cmd --permanent --add-port="${ss_port}/tcp"
-    firewall-cmd --permanent --add-port="${ss_port}/udp"
+    firewall-cmd --permanent --add-port="${xray_port}/tcp"
+    firewall-cmd --permanent --add-port="${subscription_port}/tcp"
+
+    legacy_ss_port="$(get_legacy_ss_port)"
+    if [[ -n "${legacy_ss_port}" ]]; then
+        firewall-cmd --permanent --remove-port="${legacy_ss_port}/tcp" 2>/dev/null || true
+        firewall-cmd --permanent --remove-port="${legacy_ss_port}/udp" 2>/dev/null || true
+        info "Removed legacy Shadowsocks firewall rules for port ${legacy_ss_port}."
+    fi
+
     firewall-cmd --reload
-    info "Firewall updated (ports 80, 22, ${ss_port}/tcp+udp)."
+    info "Firewall updated (ports 80, 22, ${xray_port}/tcp, ${subscription_port}/tcp)."
 }
 
 configure_selinux() {
+    local mode=""
+    local legacy_ss_port=""
+
     if ! command -v semanage &>/dev/null; then
         dnf install -y policycoreutils-python-utils
     fi
 
-    local mode
     mode="$(getenforce 2>/dev/null || echo Disabled)"
     if [[ "${mode}" == "Disabled" ]]; then
-        warn "SELinux is disabled, skipping port label."
+        warn "SELinux is disabled, skipping port label changes."
         return
     fi
 
     info "SELinux mode: ${mode}"
-    semanage port -a -t unreserved_port_t -p tcp "${ss_port}" 2>/dev/null \
-        || semanage port -m -t unreserved_port_t -p tcp "${ss_port}"
-    semanage port -a -t unreserved_port_t -p udp "${ss_port}" 2>/dev/null \
-        || semanage port -m -t unreserved_port_t -p udp "${ss_port}"
-    info "SELinux port ${ss_port} labeled as unreserved_port_t."
+    semanage port -a -t http_port_t -p tcp "${subscription_port}" 2>/dev/null \
+        || semanage port -m -t http_port_t -p tcp "${subscription_port}"
+
+    legacy_ss_port="$(get_legacy_ss_port)"
+    if [[ -n "${legacy_ss_port}" ]]; then
+        semanage port -d -t unreserved_port_t -p tcp "${legacy_ss_port}" 2>/dev/null || true
+        semanage port -d -t unreserved_port_t -p udp "${legacy_ss_port}" 2>/dev/null || true
+        info "Removed legacy Shadowsocks SELinux labels for port ${legacy_ss_port}."
+    fi
 }
 
 render_client_examples() {
     info "Rendering client example files from config..."
     RENDER_PUBLIC_IP="${public_ip}" \
-    RENDER_SS_PORT="${ss_port}" \
-    RENDER_SS_METHOD="${ss_method}" \
-    RENDER_SS_PASSWORD="${ss_password}" \
+    RENDER_XRAY_PORT="${xray_port}" \
+    RENDER_XRAY_UUID="${xray_uuid}" \
+    RENDER_REALITY_PUBLIC_KEY="${reality_public_key}" \
+    RENDER_REALITY_SHORT_ID="${reality_short_id}" \
+    RENDER_REALITY_SERVER_NAME="${reality_server_name}" \
     RENDER_SUB_TOKEN="${sub_token}" \
     bash "${REPO_ROOT}/client/render-client-configs.sh"
 }
 
 print_summary() {
     local domain="${public_ip}.sslip.io"
+    local legacy_ss_port=""
+
+    legacy_ss_port="$(get_legacy_ss_port)"
 
     echo ""
     echo "============================================"
     echo "  Setup complete!"
     echo "============================================"
     echo ""
-    echo "  Shadowsocks"
-    echo "    Server   : ${public_ip}:${ss_port}"
-    echo "    Password : ${ss_password}"
-    echo "    Method   : ${ss_method}"
-    echo "    Config   : /etc/shadowsocks-libev/server.json"
+    echo "  VLESS + REALITY"
+    echo "    Server        : ${public_ip}:${xray_port}"
+    echo "    UUID          : ${xray_uuid}"
+    echo "    Flow          : xtls-rprx-vision"
+    echo "    Server Name   : ${reality_server_name}"
+    echo "    Public Key    : ${reality_public_key}"
+    echo "    Short ID      : ${reality_short_id}"
+    echo "    UDP           : enabled (XUDP)"
+    echo "    Config        : /usr/local/etc/xray/config.json"
     echo ""
     echo "  Clash Subscription"
-    echo "    URL      : https://${domain}/${sub_token}.yaml"
+    echo "    URL           : https://${domain}:${subscription_port}/${sub_token}.yaml"
+    echo ""
+    echo "  Legacy Shadowsocks"
+    if [[ -n "${legacy_ss_port}" ]]; then
+        echo "    Status        : disabled and stopped"
+        echo "    Config kept   : /etc/shadowsocks-libev/server.json"
+        echo "    Old port      : ${legacy_ss_port}"
+    else
+        echo "    Status        : no existing server config detected"
+    fi
     echo ""
     echo "  Useful commands"
-    echo "    systemctl status ss-server@server"
-    echo "    systemctl restart ss-server@server"
+    echo "    systemctl status xray"
+    echo "    systemctl restart xray"
     echo "    systemctl status caddy"
+    echo "    systemctl status ss-server@server"
     echo "    firewall-cmd --list-all"
     echo "    getenforce"
     echo ""
@@ -321,9 +456,10 @@ print_summary() {
 main() {
     require_root
     detect_os
-    configure_runtime_values
-    install_shadowsocks
-    configure_shadowsocks
+    install_xray
+    ensure_runtime_values
+    disable_legacy_shadowsocks
+    configure_xray
     install_systemd_unit
     install_caddy
     configure_caddy

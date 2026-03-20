@@ -28,18 +28,26 @@ external-controller-cors:
   - https://metacubex.github.io
   - https://board.zash.run.place
 proxies:
-- name: example-ss
-  type: ss
+- name: example-vless-reality
+  type: vless
   server: <server-public-ip>
-  port: 8388
-  cipher: chacha20-ietf-poly1305
-  password: <generated-password>
+  port: 443
+  uuid: <generated-uuid>
+  network: tcp
   udp: true
+  tls: true
+  flow: xtls-rprx-vision
+  servername: www.cloudflare.com
+  client-fingerprint: chrome
+  packet-encoding: xudp
+  reality-opts:
+    public-key: <generated-public-key>
+    short-id: <generated-short-id>
 proxy-groups:
 - name: PROXY
   type: select
   proxies:
-  - example-ss
+  - example-vless-reality
 rules:
 - GEOSITE,microsoft,DIRECT
 - DOMAIN-SUFFIX,outlook.com,DIRECT
@@ -55,4 +63,3 @@ rules:
 - DOMAIN-SUFFIX,oaistatic.com,PROXY
 - DOMAIN-SUFFIX,oaiusercontent.com,PROXY
 - MATCH,PROXY
-

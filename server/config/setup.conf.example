@@ -2,17 +2,22 @@
 # server/install.sh, server/uninstall.sh, and client/render-client-configs.sh all read from it.
 
 # Server-side settings
-SS_PORT=8388
-SS_METHOD=chacha20-ietf-poly1305
+XRAY_PORT=443
 PUBLIC_IP=
+REALITY_SERVER_NAME=www.cloudflare.com
+REALITY_DEST=www.cloudflare.com:443
+REALITY_FINGERPRINT=chrome
+SUBSCRIPTION_PORT=8443
 
 # Use AUTO_GENERATE to let install.sh create a random value.
-SS_PASSWORD=AUTO_GENERATE
+XRAY_UUID=AUTO_GENERATE
+REALITY_PRIVATE_KEY=AUTO_GENERATE
+REALITY_PUBLIC_KEY=AUTO_GENERATE
+REALITY_SHORT_ID=AUTO_GENERATE
 SUB_TOKEN=AUTO_GENERATE
 
 # Client example settings
-CLASH_PROXY_NAME=example-ss
+CLASH_PROXY_NAME=example-vless-reality
 CLASH_MIXED_PORT=7897
 CLASH_GLOBAL_MODE=global
 CLASH_RULE_MODE=rule
-

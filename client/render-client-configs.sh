@@ -9,14 +9,40 @@ DOCS_DIR="${SCRIPT_DIR}/active-config"
 source "${REPO_ROOT}/server/scripts/load-config.sh"
 load_project_config "${REPO_ROOT}"
 
+derive_reality_public_key() {
+    local private_key="$1"
+    local key_output=""
+
+    command -v xray &>/dev/null || return 1
+    key_output="$(xray x25519 -i "${private_key}")" || return 1
+    awk -F': ' '/Public key|PublicKey|Password/ {print $2}' <<<"${key_output}"
+}
+
 public_ip="${RENDER_PUBLIC_IP:-${PUBLIC_IP:-<server-public-ip>}}"
-ss_port="${RENDER_SS_PORT:-${SS_PORT}}"
-ss_method="${RENDER_SS_METHOD:-${SS_METHOD}}"
-ss_password="${RENDER_SS_PASSWORD:-${SS_PASSWORD}}"
+xray_port="${RENDER_XRAY_PORT:-${XRAY_PORT}}"
+xray_uuid="${RENDER_XRAY_UUID:-${XRAY_UUID}}"
+reality_server_name="${RENDER_REALITY_SERVER_NAME:-${REALITY_SERVER_NAME}}"
+reality_short_id="${RENDER_REALITY_SHORT_ID:-${REALITY_SHORT_ID}}"
+reality_public_key="${RENDER_REALITY_PUBLIC_KEY:-${REALITY_PUBLIC_KEY}}"
 sub_token="${RENDER_SUB_TOKEN:-${SUB_TOKEN}}"
 
-if should_autogenerate "${ss_password}"; then
-    ss_password="<generated-password>"
+if should_autogenerate "${xray_uuid}"; then
+    xray_uuid="<generated-uuid>"
+fi
+
+if should_autogenerate "${reality_short_id}"; then
+    reality_short_id="<generated-short-id>"
+fi
+
+if should_autogenerate "${reality_public_key}"; then
+    reality_public_key=""
+    if ! should_autogenerate "${REALITY_PRIVATE_KEY}"; then
+        reality_public_key="$(derive_reality_public_key "${REALITY_PRIVATE_KEY}" 2>/dev/null || true)"
+    fi
+
+    if [[ -z "${reality_public_key}" ]]; then
+        reality_public_key="<generated-public-key>"
+    fi
 fi
 
 if should_autogenerate "${sub_token}"; then
@@ -46,7 +72,7 @@ tun:
   auto-detect-interface: true
   dns-hijack:
   - any:53
-external-controller-pipe: \\\\.\pipe\verge-mihomo
+external-controller-pipe: \\\\.\\pipe\\verge-mihomo
 external-controller-cors:
   allow-private-network: true
   allow-origins:
@@ -57,12 +83,20 @@ external-controller-cors:
   - https://board.zash.run.place
 proxies:
 - name: ${CLASH_PROXY_NAME}
-  type: ss
+  type: vless
   server: ${public_ip}
-  port: ${ss_port}
-  cipher: ${ss_method}
-  password: ${ss_password}
+  port: ${xray_port}
+  uuid: ${xray_uuid}
+  network: tcp
   udp: true
+  tls: true
+  flow: xtls-rprx-vision
+  servername: ${reality_server_name}
+  client-fingerprint: ${REALITY_FINGERPRINT}
+  packet-encoding: xudp
+  reality-opts:
+    public-key: ${reality_public_key}
+    short-id: ${reality_short_id}
 proxy-groups:
 - name: PROXY
   type: select
@@ -106,7 +140,7 @@ tun:
   auto-detect-interface: true
   dns-hijack:
   - any:53
-external-controller-pipe: \\\\.\pipe\verge-mihomo
+external-controller-pipe: \\\\.\\pipe\\verge-mihomo
 external-controller-cors:
   allow-private-network: true
   allow-origins:
@@ -117,12 +151,20 @@ external-controller-cors:
   - https://board.zash.run.place
 proxies:
 - name: ${CLASH_PROXY_NAME}
-  type: ss
+  type: vless
   server: ${public_ip}
-  port: ${ss_port}
-  cipher: ${ss_method}
-  password: ${ss_password}
+  port: ${xray_port}
+  uuid: ${xray_uuid}
+  network: tcp
   udp: true
+  tls: true
+  flow: xtls-rprx-vision
+  servername: ${reality_server_name}
+  client-fingerprint: ${REALITY_FINGERPRINT}
+  packet-encoding: xudp
+  reality-opts:
+    public-key: ${reality_public_key}
+    short-id: ${reality_short_id}
 proxy-groups:
 - name: PROXY
   type: select
@@ -207,5 +249,3 @@ if "%_CLASH_RUNNING%"=="yes" (
 
 "%~dp0opencode.cmd" %*
 EOF
-
-

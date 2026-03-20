@@ -18,12 +18,18 @@ load_project_config() {
         source "${user_config}"
     fi
 
-    : "${SS_PORT:=8388}"
-    : "${SS_METHOD:=chacha20-ietf-poly1305}"
+    : "${XRAY_PORT:=443}"
     : "${PUBLIC_IP:=}"
-    : "${SS_PASSWORD:=AUTO_GENERATE}"
+    : "${REALITY_SERVER_NAME:=www.cloudflare.com}"
+    : "${REALITY_DEST:=www.cloudflare.com:443}"
+    : "${REALITY_FINGERPRINT:=chrome}"
+    : "${SUBSCRIPTION_PORT:=8443}"
+    : "${XRAY_UUID:=AUTO_GENERATE}"
+    : "${REALITY_PRIVATE_KEY:=AUTO_GENERATE}"
+    : "${REALITY_PUBLIC_KEY:=AUTO_GENERATE}"
+    : "${REALITY_SHORT_ID:=AUTO_GENERATE}"
     : "${SUB_TOKEN:=AUTO_GENERATE}"
-    : "${CLASH_PROXY_NAME:=example-ss}"
+    : "${CLASH_PROXY_NAME:=example-vless-reality}"
     : "${CLASH_MIXED_PORT:=7897}"
     : "${CLASH_GLOBAL_MODE:=global}"
     : "${CLASH_RULE_MODE:=rule}"
@@ -32,4 +38,3 @@ load_project_config() {
 should_autogenerate() {
     [[ -z "${1:-}" || "${1}" == "AUTO_GENERATE" ]]
 }
-

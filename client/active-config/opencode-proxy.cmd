@@ -18,4 +18,3 @@ if "%_CLASH_RUNNING%"=="yes" (
 )
 
 "%~dp0opencode.cmd" %*
-
