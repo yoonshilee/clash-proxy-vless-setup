@@ -245,11 +245,11 @@ REM Generated from server/config/setup.conf(.example) by client/render-client-co
 REM opencode (Bun/runtime variants) does NOT reliably respect WinINET system proxy on Windows.
 REM It DOES respect HTTP_PROXY/HTTPS_PROXY env vars.
 REM We set them here when Clash mixed port is reachable.
-REM This wrapper also tries multiple OpenCode install layouts:
-REM 1. OPENCODE_BIN env override
-REM 2. sibling opencode.cmd / opencode.exe / opencode
-REM 3. opencode on PATH
-REM 4. common direct-install cache locations
+REM Launch strategy:
+REM 1. Try the opencode command directly after setting env vars
+REM 2. Fall back to OPENCODE_BIN if defined
+REM 3. Fall back to sibling opencode.cmd / opencode.exe / opencode
+REM 4. Fall back to common direct-install locations that expose the real opencode binary
 
 set "_SELF=%~f0"
 set "_SCRIPT_DIR=%~dp0"
@@ -270,6 +270,12 @@ if /I "%_CLASH_RUNNING%"=="yes" (
   echo [opencode-proxy] Clash detected, proxy enabled
 ) else (
   echo [opencode-proxy] Clash not detected, starting without proxy
+)
+
+where.exe opencode >NUL 2>NUL
+if not errorlevel 1 (
+  echo [opencode-proxy] Launching: opencode
+  endlocal & opencode %*
 )
 
 if defined OPENCODE_BIN (
@@ -295,9 +301,6 @@ if not defined _OPENCODE_TARGET (
 
 if not defined _OPENCODE_TARGET (
   for %%F in (
-    "%_USER_HOME%\\.cache\\opencode\\packages\\oh-my-openagent@latest\\node_modules\\oh-my-openagent-windows-x64\\bin\\oh-my-opencode.exe"
-    "%_USER_HOME%\\.cache\\opencode\\packages\\oh-my-openagent@latest\\node_modules\\oh-my-openagent-windows-x64-baseline\\bin\\oh-my-opencode.exe"
-    "%_USER_HOME%\\.cache\\opencode\\node_modules\\.bin\\oh-my-opencode.exe"
     "%LOCALAPPDATA%\\Programs\\opencode\\opencode.exe"
     "%LOCALAPPDATA%\\Microsoft\\WinGet\\Links\\opencode.exe"
     "%_USER_HOME%\\.local\\bin\\opencode.exe"
@@ -309,7 +312,7 @@ if not defined _OPENCODE_TARGET (
 
 if not defined _OPENCODE_TARGET (
   echo [opencode-proxy] Could not find an OpenCode executable. 1>&2
-  echo [opencode-proxy] Set OPENCODE_BIN to the full path of opencode or oh-my-opencode.exe. 1>&2
+  echo [opencode-proxy] Make sure 'opencode' works in cmd, or set OPENCODE_BIN to opencode.exe/opencode.cmd. 1>&2
   exit /b 1
 )
 
