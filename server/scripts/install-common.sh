@@ -382,6 +382,39 @@ $(emit_clash_rule_lines "  - " "${public_ip}" yes)
 EOF
 }
 
+validate_subscription_yaml() {
+    local yaml_file="$1"
+    local required_patterns=(
+        '^mode: rule$'
+        '^proxies:'
+        '^proxy-groups:'
+        '^rules:'
+        'type: vless'
+        'packet-encoding: xudp'
+        'reality-opts:'
+        'name: "PROXY"'
+        'name: "Auto"'
+        'IP-CIDR,.*?/32,DIRECT,no-resolve'
+        'DOMAIN-SUFFIX,outlook.com,DIRECT'
+        'DOMAIN-SUFFIX,office365.com,DIRECT'
+        'DOMAIN-SUFFIX,office.net,DIRECT'
+        'DOMAIN-SUFFIX,microsoft.com,DIRECT'
+        'DOMAIN-SUFFIX,openai.com,PROXY'
+        'MATCH,PROXY'
+    )
+    local pattern=""
+
+    [[ -f "${yaml_file}" ]] || error "Generated subscription YAML is missing: ${yaml_file}"
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Eq "${pattern}" "${yaml_file}"; then
+            error "Generated subscription YAML is missing required content: ${pattern}"
+        fi
+    done
+
+    info "Validated Clash/Mihomo subscription YAML."
+}
+
 configure_caddy() {
     local sub_dir="/var/lib/clash-sub"
     local yaml_file="${sub_dir}/${sub_token}.yaml"
@@ -394,6 +427,7 @@ configure_caddy() {
     info "Generating Clash/Mihomo subscription YAML..."
     rm -f "${sub_dir}"/*.yaml
     write_subscription_yaml "${yaml_file}"
+    validate_subscription_yaml "${yaml_file}"
     chmod 0640 "${yaml_file}"
     chown clashsub:caddy "${yaml_file}"
 
@@ -589,5 +623,3 @@ main_install() {
     render_client_examples
     print_summary
 }
-
-
