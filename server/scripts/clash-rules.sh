@@ -21,6 +21,46 @@ CLASH_MICROSOFT_DIRECT_SUFFIXES=(
     "azureedge.net"
 )
 
+CLASH_CHINA_APP_DIRECT_SUFFIXES=(
+    "doubao.com"
+    "bytedance.com"
+    "bytecdn.cn"
+    "byteimg.com"
+    "byteimg.cn"
+    "bytimg.com"
+    "zijieapi.com"
+    "snssdk.com"
+    "amemv.com"
+    "douyin.com"
+    "douyincdn.com"
+    "douyinpic.com"
+    "douyinstatic.com"
+    "toutiao.com"
+    "ixigua.com"
+    "pstatp.com"
+    "volces.com"
+    "volcengine.com"
+    "weixin.qq.com"
+    "wx.qq.com"
+    "qlogo.cn"
+    "wechat.com"
+    "wechatapp.com"
+    "servicewechat.com"
+    "tenpay.com"
+    "bilibili.com"
+    "bilibili.tv"
+    "biliapi.com"
+    "biliapi.net"
+    "bilivideo.com"
+    "hdslb.com"
+    "acgvideo.com"
+    "xiaohongshu.com"
+    "xiaohongshu.cn"
+    "xhscdn.com"
+    "xhscdn.net"
+    "xhslink.com"
+)
+
 CLASH_OPENAI_PROXY_SUFFIXES=(
     "openai.com"
     "chatgpt.com"
@@ -48,6 +88,13 @@ emit_clash_rule_lines() {
     printf '%sGEOSITE,microsoft,DIRECT\n' "${prefix}"
 
     for domain in "${CLASH_MICROSOFT_DIRECT_SUFFIXES[@]}"; do
+        [[ -n "${domain}" ]] || continue
+        [[ -n "${seen[${domain}]:-}" ]] && continue
+        seen["${domain}"]=1
+        printf '%sDOMAIN-SUFFIX,%s,DIRECT\n' "${prefix}" "${domain}"
+    done
+
+    for domain in "${CLASH_CHINA_APP_DIRECT_SUFFIXES[@]}"; do
         [[ -n "${domain}" ]] || continue
         [[ -n "${seen[${domain}]:-}" ]] && continue
         seen["${domain}"]=1

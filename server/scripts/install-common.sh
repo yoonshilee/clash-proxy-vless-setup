@@ -399,6 +399,11 @@ validate_subscription_yaml() {
         'DOMAIN-SUFFIX,office365.com,DIRECT'
         'DOMAIN-SUFFIX,office.net,DIRECT'
         'DOMAIN-SUFFIX,microsoft.com,DIRECT'
+        'DOMAIN-SUFFIX,doubao.com,DIRECT'
+        'DOMAIN-SUFFIX,byteimg.com,DIRECT'
+        'DOMAIN-SUFFIX,weixin.qq.com,DIRECT'
+        'DOMAIN-SUFFIX,bilibili.com,DIRECT'
+        'DOMAIN-SUFFIX,xiaohongshu.com,DIRECT'
         'DOMAIN-SUFFIX,openai.com,PROXY'
         'MATCH,PROXY'
     )
