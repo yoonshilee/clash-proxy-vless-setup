@@ -1,0 +1,26 @@
+# Copy this file to server/config/setup.conf before installation.
+# server/config/setup.conf is your private local config file and is not tracked by Git.
+# The installer writes the final effective values back into server/config/setup.conf.
+
+# Server-side settings
+XRAY_PORT=443
+PUBLIC_IP=
+REALITY_SERVER_NAME=www.cloudflare.com
+REALITY_DEST=www.cloudflare.com:443
+REALITY_FINGERPRINT=chrome
+SUBSCRIPTION_PORT=8443
+
+# Use AUTO_GENERATE to let the installer create a random value during installation.
+XRAY_UUID=AUTO_GENERATE
+REALITY_PRIVATE_KEY=AUTO_GENERATE
+REALITY_PUBLIC_KEY=AUTO_GENERATE
+REALITY_SHORT_ID=AUTO_GENERATE
+SUB_TOKEN=AUTO_GENERATE
+
+# Client example settings
+CLASH_PROXY_NAME=vless-reality
+CLASH_MIXED_PORT=7897
+CLASH_SOCKS_PORT=7898
+CLASH_GLOBAL_MODE=global
+CLASH_RULE_MODE=rule
+CLASH_DIRECT_EXTRA_DOMAINS=
