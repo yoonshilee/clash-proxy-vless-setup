@@ -42,6 +42,23 @@ CLASH_GITHUB_PROXY_SUFFIXES=(
 )
 
 CLASH_CHINA_APP_DIRECT_SUFFIXES=(
+    "taobao.com"
+    "tb.cn"
+    "tmall.com"
+    "tmall.hk"
+    "alicdn.com"
+    "alimama.com"
+    "alipay.com"
+    "alipayobjects.com"
+    "mmstat.com"
+    "cainiao.com"
+    "cainiao.com.cn"
+    "1688.com"
+    "etao.com"
+    "alibaba.com"
+    "alibabacloud.com"
+    "aliyun.com"
+    "aliyuncs.com"
     "doubao.com"
     "bytedance.com"
     "bytecdn.cn"
