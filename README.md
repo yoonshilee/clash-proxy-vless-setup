@@ -78,6 +78,10 @@ When installation finishes, the script prints the private IPv4 subscription and 
 
 All URLs reuse `SUB_TOKEN`. Keep them private. The full subscription and provider files contain both IPv4 and IPv6 nodes when IPv6 publishing is enabled, so importing either URL provides both paths.
 
+The subscription service only serves the two exact tokenized YAML paths. The homepage, `/index.html`, unknown tokens, and other files return HTTP 404. Updating with the matching installer removes the credential-bearing homepage created by older versions while preserving existing subscription URLs. Custom tokens may contain only letters, digits, dots, underscores, or hyphens.
+
+Subscription URLs are printed in the installer's terminal output, not on a public webpage. Keep that output out of public CI/CD logs. Closing the homepage does not revoke credentials already downloaded; rotating `SUB_TOKEN` revokes old download links, while rotating `XRAY_UUID` also requires updating installed clients.
+
 ## Client Usage
 
 On your personal computer:
@@ -159,6 +163,16 @@ Run the local rule and rendering tests from the personal computer:
 ```bash
 bash client/tests/render-configs.tests.sh
 ```
+
+Verify access to a running subscription service using private environment values:
+
+```bash
+SUBSCRIPTION_TEST_BASE_URL='https://<subscription-host>:<port>' \
+SUBSCRIPTION_TEST_TOKEN='<private-token>' \
+bash server/tests/subscription-access.tests.sh
+```
+
+This checks that valid subscription and provider URLs return YAML, while public discovery paths and unknown files return HTTP 404. It does not print private URLs or response bodies.
 
 ## Updating
 

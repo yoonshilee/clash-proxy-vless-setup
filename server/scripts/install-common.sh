@@ -596,19 +596,17 @@ configure_caddy() {
     local provider_file="${sub_dir}/${sub_token}-provider.yaml"
     local domain=""
     local ipv6_domain=""
-    local ipv6_index_html=""
     local ipv6_http_redirect=""
     local subscription_sites=""
+
+    [[ "${sub_token}" =~ ^[A-Za-z0-9._-]+$ ]] \
+        || error "SUB_TOKEN must contain only letters, digits, dots, underscores, or hyphens."
 
     domain="$(sslip_domain_for_address "${public_ip}")"
     subscription_sites="https://${domain}:${subscription_port}"
     if [[ -n "${public_ipv6}" ]]; then
         ipv6_domain="$(sslip_domain_for_address "${public_ipv6}")"
         subscription_sites+=$',\n'"https://${ipv6_domain}:${subscription_port}"
-        ipv6_index_html="<p>Use this IPv6 subscription URL in Clash Verge / Mihomo:</p>
-<code>https://${ipv6_domain}:${subscription_port}/${sub_token}.yaml</code>
-<p>Use this IPv6 node provider URL in a local Mihomo config:</p>
-<code>https://${ipv6_domain}:${subscription_port}/${sub_token}-provider.yaml</code>"
         ipv6_http_redirect="http://${ipv6_domain} {
     redir https://${ipv6_domain}:${subscription_port}{uri}
 }"
@@ -627,17 +625,8 @@ configure_caddy() {
     chmod 0640 "${yaml_file}" "${provider_file}"
     chown clashsub:caddy "${yaml_file}" "${provider_file}"
 
-    cat > "${sub_dir}/index.html" <<EOF
-<!DOCTYPE html><html><body><h2>Mihomo subscription</h2>
-<p>Use this URL in Clash Verge / Mihomo:</p>
-<code>https://${domain}:${subscription_port}/${sub_token}.yaml</code>
-<p>Use this node provider URL in a local Mihomo config:</p>
-<code>https://${domain}:${subscription_port}/${sub_token}-provider.yaml</code>
-${ipv6_index_html}
-</body></html>
-EOF
-    chmod 0640 "${sub_dir}/index.html"
-    chown clashsub:caddy "${sub_dir}/index.html"
+    # Remove the credential-bearing homepage left by older installations.
+    rm -f "${sub_dir}/index.html"
 
     info "Writing Caddy configs..."
     install -d -m 0755 /etc/caddy/Caddyfile.d
@@ -664,12 +653,17 @@ EOF
 
     cat > /etc/caddy/Caddyfile.d/clash-sub.caddyfile <<EOF
 ${subscription_sites} {
-    root * ${sub_dir}
-    file_server
+    @subscription path /${sub_token}.yaml /${sub_token}-provider.yaml
+    handle @subscription {
+        root * ${sub_dir}
+        header Content-Type "text/yaml; charset=utf-8"
+        header Cache-Control "no-store"
+        file_server
+    }
 
-    @yaml path /*.yaml
-    header @yaml Content-Type "text/yaml; charset=utf-8"
-    header @yaml Cache-Control "no-store"
+    handle {
+        respond 404
+    }
 
     tls {
         protocols tls1.2 tls1.3
@@ -677,6 +671,7 @@ ${subscription_sites} {
 }
 EOF
 
+    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
     systemctl daemon-reload
     systemctl enable caddy
     systemctl restart caddy
