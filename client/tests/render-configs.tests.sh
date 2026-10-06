@@ -90,4 +90,23 @@ grep -Fq 'DOMAIN-SUFFIX,mzstatic.com,DIRECT' "${TEMP_DIR}/rendered/clash-verge-c
 grep -Fq 'DOMAIN-SUFFIX,devstreaming-cdn.apple.com,DIRECT' "${TEMP_DIR}/rendered/clash-verge-check.yaml"
 ! grep -Fq 'push2his.eastmoney.com' "${TEMP_DIR}/rendered/clash-verge-check.yaml"
 
+for profile in "${subscription_file}" \
+    "${TEMP_DIR}/rendered/clash-verge.yaml" \
+    "${TEMP_DIR}/rendered/clash-verge-check.yaml" \
+    "${TEMP_DIR}/rendered/mihomo-provider.yaml"; do
+    for domain in dianping.com dpfile.com meituan.com meituan.net sankuai.com \
+        amap.com autonavi.com gaode.com; do
+        grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
+    done
+    awk '
+        /DOMAIN-SUFFIX,github.com,PROXY/ { github = NR }
+        /DOMAIN-SUFFIX,openai.com,PROXY/ { openai = NR }
+        /GEOSITE,cn,DIRECT/ { domestic = NR }
+        /GEOIP,CN,DIRECT,no-resolve/ { china_ip = NR }
+        /MATCH,PROXY/ { fallback = NR }
+        END { exit !(github && openai && github < domestic && openai < domestic &&
+            domestic < china_ip && china_ip < fallback) }
+    ' "${profile}"
+done
+
 echo "Validated subscription, proxy provider, and Mihomo template generation."

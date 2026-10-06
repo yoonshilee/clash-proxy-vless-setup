@@ -525,6 +525,13 @@ validate_subscription_yaml() {
         'DOMAIN-SUFFIX,weixin.qq.com,DIRECT'
         'DOMAIN-SUFFIX,bilibili.com,DIRECT'
         'DOMAIN-SUFFIX,xiaohongshu.com,DIRECT'
+        'DOMAIN-SUFFIX,dianping.com,DIRECT'
+        'DOMAIN-SUFFIX,dpfile.com,DIRECT'
+        'DOMAIN-SUFFIX,meituan.com,DIRECT'
+        'DOMAIN-SUFFIX,amap.com,DIRECT'
+        'DOMAIN-SUFFIX,autonavi.com,DIRECT'
+        'GEOSITE,cn,DIRECT'
+        'GEOIP,CN,DIRECT,no-resolve'
         'DOMAIN-SUFFIX,openai.com,PROXY'
         'MATCH,PROXY'
     )

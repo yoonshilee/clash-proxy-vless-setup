@@ -55,6 +55,27 @@ CLASH_GITHUB_PROXY_SUFFIXES=(
 )
 
 CLASH_CHINA_APP_DIRECT_SUFFIXES=(
+    "51ping.com"
+    "baobaoaichi.cn"
+    "dianping.com"
+    "dpfile.com"
+    "maoyan.com"
+    "meituan.com"
+    "meituan.net"
+    "mtyun.com"
+    "neixin.cn"
+    "sankuai.com"
+    "a-map.cn"
+    "a-map.co"
+    "a-map.link"
+    "a-map.vip"
+    "acloudrender.com"
+    "amap.com"
+    "amap.net"
+    "amapauto.com"
+    "anav.com"
+    "autonavi.com"
+    "gaode.com"
     "taobao.com"
     "tb.cn"
     "tmall.com"
@@ -183,6 +204,10 @@ emit_clash_rule_lines() {
     for domain in "${CLASH_OPENAI_PROXY_SUFFIXES[@]}"; do
         printf '%sDOMAIN-SUFFIX,%s,PROXY\n' "${prefix}" "${domain}"
     done
+
+    # Keep explicit proxy rules ahead of the domestic domain and IP fallbacks.
+    printf '%sGEOSITE,cn,DIRECT\n' "${prefix}"
+    printf '%sGEOIP,CN,DIRECT,no-resolve\n' "${prefix}"
 
     if [[ "${include_match}" == "yes" ]]; then
         printf '%sMATCH,PROXY\n' "${prefix}"

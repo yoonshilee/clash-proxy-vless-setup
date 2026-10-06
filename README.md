@@ -96,6 +96,8 @@ The generated subscription profile includes:
 
 The VPS installer also writes generated examples to `client/local-config/`. That directory is ignored by Git and is never the source of personal routing rules.
 
+Server-managed rules explicitly route Dianping, Meituan, Amap, and their supporting domains through `DIRECT`. Other domestic services use `GEOSITE,cn,DIRECT` and `GEOIP,CN,DIRECT,no-resolve` before the final proxy fallback. Explicit GitHub and OpenAI proxy rules take precedence over these domestic fallbacks; personal prepended rules still take precedence over server defaults.
+
 ## Personal Routing Rules
 
 Personal domain rules are stored separately from the VPS subscription. Subscription updates cannot overwrite them.
