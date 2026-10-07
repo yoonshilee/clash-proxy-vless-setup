@@ -95,17 +95,24 @@ for profile in "${subscription_file}" \
     "${TEMP_DIR}/rendered/clash-verge-check.yaml" \
     "${TEMP_DIR}/rendered/mihomo-provider.yaml"; do
     for domain in dianping.com dpfile.com meituan.com meituan.net sankuai.com \
-        amap.com autonavi.com gaode.com; do
+        amap.com autonavi.com gaode.com oray.com oray.net orayimg.com \
+        uuyc.163.com netease.com todesk.com todesk.cn dingtalk.com feishu.cn \
+        feishucdn.com wps.cn kdocs.cn qq.com qpic.cn baidupcs.com alipan.com \
+        quark.cn xunlei.com jianguoyun.com 115.com jd.com pddpic.com ele.me \
+        didichuxing.com ctrip.com qunar.com iqiyi.com youku.com kuaishou.com \
+        kugou.com kuwo.cn; do
         grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
+    [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]
     awk '
         /DOMAIN-SUFFIX,github.com,PROXY/ { github = NR }
         /DOMAIN-SUFFIX,openai.com,PROXY/ { openai = NR }
         /GEOSITE,cn,DIRECT/ { domestic = NR }
+        /DOMAIN-SUFFIX,.*,DIRECT/ { last_direct = NR }
         /GEOIP,CN,DIRECT,no-resolve/ { china_ip = NR }
         /MATCH,PROXY/ { fallback = NR }
         END { exit !(github && openai && github < domestic && openai < domestic &&
-            domestic < china_ip && china_ip < fallback) }
+            last_direct < domestic && domestic < china_ip && china_ip < fallback) }
     ' "${profile}"
 done
 
