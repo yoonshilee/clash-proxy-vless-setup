@@ -535,6 +535,8 @@ validate_subscription_yaml() {
         'DOMAIN-SUFFIX,uuyc.163.com,DIRECT'
         'DOMAIN-SUFFIX,netease.com,DIRECT'
         'DOMAIN-SUFFIX,todesk.com,DIRECT'
+        'DOMAIN-SUFFIX,lkcoffee.com,DIRECT'
+        'DOMAIN-SUFFIX,luckincoffeecdn.com,DIRECT'
         'GEOSITE,cn,DIRECT'
         'GEOIP,CN,DIRECT,no-resolve'
         'DOMAIN-SUFFIX,openai.com,PROXY'

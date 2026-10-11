@@ -100,8 +100,15 @@ for profile in "${subscription_file}" \
         feishucdn.com wps.cn kdocs.cn qq.com qpic.cn baidupcs.com alipan.com \
         quark.cn xunlei.com jianguoyun.com 115.com jd.com pddpic.com ele.me \
         didichuxing.com ctrip.com qunar.com iqiyi.com youku.com kuaishou.com \
-        kugou.com kuwo.cn; do
+        kugou.com kuwo.cn lkcoffee.com luckincoffeecdn.com yyds.co \
+        cotticoffee.com cotti.com cdn-product-prod.yummy.tech heytea.com \
+        chagee.com mxbc.com mxbc.net naixuecha.com starbucks.com.cn \
+        kfc.com.cn pizzahut.com.cn yumchina.com 4008-517-517.cn mcd.cn \
+        mcdchina.net mcdonalds.com.cn; do
         grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
+    done
+    for domain in starbucks.com mcdonalds.com yummy.tech; do
+        ! grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]
     awk '
