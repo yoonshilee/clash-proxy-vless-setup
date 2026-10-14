@@ -34,6 +34,13 @@ CLASH_APPLE_DIRECT_SUFFIXES=(
     "devstreaming-cdn.apple.com"
 )
 
+CLASH_NPM_DIRECT_SUFFIXES=(
+    # Keep npm and its DataDome verification requests on the same egress.
+    "npmjs.com"
+    "npmjs.org"
+    "captcha-delivery.com"
+)
+
 CLASH_GITHUB_PROXY_SUFFIXES=(
     "github.com"
     "githubusercontent.com"
@@ -317,7 +324,7 @@ emit_clash_rule_lines() {
         printf '%sDOMAIN-SUFFIX,%s,DIRECT\n' "${prefix}" "${domain}"
     done
 
-    for domain in "${CLASH_APPLE_DIRECT_SUFFIXES[@]}"; do
+    for domain in "${CLASH_APPLE_DIRECT_SUFFIXES[@]}" "${CLASH_NPM_DIRECT_SUFFIXES[@]}"; do
         [[ -n "${domain}" ]] || continue
         [[ "${seen_domains}" == *$'\n'"${domain}"$'\n'* ]] && continue
         seen_domains+="${domain}"$'\n'

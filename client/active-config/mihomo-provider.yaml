@@ -87,6 +87,9 @@ rules:
 - DOMAIN-SUFFIX,swcdn.apple.com,DIRECT
 - DOMAIN-SUFFIX,appldnld.apple.com,DIRECT
 - DOMAIN-SUFFIX,devstreaming-cdn.apple.com,DIRECT
+- DOMAIN-SUFFIX,npmjs.com,DIRECT
+- DOMAIN-SUFFIX,npmjs.org,DIRECT
+- DOMAIN-SUFFIX,captcha-delivery.com,DIRECT
 - DOMAIN-SUFFIX,oray.com,DIRECT
 - DOMAIN-SUFFIX,oray.net,DIRECT
 - DOMAIN-SUFFIX,orayimg.com,DIRECT
