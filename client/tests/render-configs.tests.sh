@@ -104,10 +104,19 @@ for profile in "${subscription_file}" \
         cotticoffee.com cotti.com cdn-product-prod.yummy.tech heytea.com \
         chagee.com mxbc.com mxbc.net naixuecha.com starbucks.com.cn \
         kfc.com.cn pizzahut.com.cn yumchina.com 4008-517-517.cn mcd.cn \
-        mcdchina.net mcdonalds.com.cn npmjs.com npmjs.org captcha-delivery.com; do
+        mcdchina.net mcdonalds.com.cn npmjs.com npmjs.org captcha-delivery.com \
+        mihoyo.com mhystatic.com miyoushe.com yuanshen.com bh3.com bhsr.com \
+        juequling.com hoyoverse.com hoyolab.com genshinimpact.com \
+        ninebot.com segway-ninebot.com niu.com niucache.com yadea.com.cn \
+        aimatech.com tailg.com.cn tailgvip.com luyuan.cn xinri.com \
+        byd.com bydauto.com.cn tengshiauto.com yangwangauto.com fangchengbao.com \
+        nio.com nio.cn onvo.cn firefly.com.cn xiaopeng.com lixiang.com ampmake.com \
+        zeekrlife.com geely.com xiaomiev.com mi-img.com mifile.cn hima.auto \
+        leapmotor.com leapmotor.cn; do
         grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
-    for domain in starbucks.com mcdonalds.com yummy.tech cloudflare.com datadome.co; do
+    for domain in starbucks.com mcdonalds.com yummy.tech cloudflare.com datadome.co \
+        akamaized.net myqcloud.com; do
         ! grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]
