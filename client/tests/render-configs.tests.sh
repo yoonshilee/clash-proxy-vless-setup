@@ -112,11 +112,17 @@ for profile in "${subscription_file}" \
         byd.com bydauto.com.cn tengshiauto.com yangwangauto.com fangchengbao.com \
         nio.com nio.cn onvo.cn firefly.com.cn xiaopeng.com lixiang.com ampmake.com \
         zeekrlife.com geely.com xiaomiev.com mi-img.com mifile.cn hima.auto \
-        leapmotor.com leapmotor.cn; do
+        leapmotor.com leapmotor.cn huaweicloud.com myhuaweicloud.com hc-cdn.com \
+        hc-cdn.cn cloud.tencent.com cloud.tencent.cn qcloud.com tencentcloudapi.com \
+        qcloudimg.com portal.volccdn.com res.volccdn.com jdcloud.com img1.jcloudcs.com \
+        ctyun.cn ctyunapi.cn ecloud.10086.cn cmecloud.cn cucloud.cn ksyun.com \
+        ucloud.cn qingcloud.com qiniu.com qiniuapi.com qiniup.com static-file.qiniu.io \
+        aliyun.com aliyuncs.com alibabacloud.com baidubce.com bcebos.com \
+        volcengine.com volces.com; do
         grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     for domain in starbucks.com mcdonalds.com yummy.tech cloudflare.com datadome.co \
-        akamaized.net myqcloud.com; do
+        akamaized.net myqcloud.com amazonaws.com qiniudn.com ksyuncs.com; do
         ! grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]

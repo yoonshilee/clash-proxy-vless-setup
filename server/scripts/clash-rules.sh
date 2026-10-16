@@ -62,6 +62,32 @@ CLASH_GITHUB_PROXY_SUFFIXES=(
 )
 
 CLASH_CHINA_APP_DIRECT_SUFFIXES=(
+    # Cloud consoles, APIs, and portal assets; not all customer-hosted CDNs.
+    "huaweicloud.com"
+    "myhuaweicloud.com"
+    "hc-cdn.com"
+    "hc-cdn.cn"
+    "cloud.tencent.com"
+    "cloud.tencent.cn"
+    "qcloud.com"
+    "tencentcloudapi.com"
+    "qcloudimg.com"
+    "portal.volccdn.com"
+    "res.volccdn.com"
+    "jdcloud.com"
+    "img1.jcloudcs.com"
+    "ctyun.cn"
+    "ctyunapi.cn"
+    "ecloud.10086.cn"
+    "cmecloud.cn"
+    "cucloud.cn"
+    "ksyun.com"
+    "ucloud.cn"
+    "qingcloud.com"
+    "qiniu.com"
+    "qiniuapi.com"
+    "qiniup.com"
+    "static-file.qiniu.io"
     # Keep game accounts and patch hosts direct without bypassing shared CDNs.
     "mhystatic.com"
     "mhyurl.cn"
