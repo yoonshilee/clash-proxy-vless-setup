@@ -118,11 +118,21 @@ for profile in "${subscription_file}" \
         ctyun.cn ctyunapi.cn ecloud.10086.cn cmecloud.cn cucloud.cn ksyun.com \
         ucloud.cn qingcloud.com qiniu.com qiniuapi.com qiniup.com static-file.qiniu.io \
         aliyun.com aliyuncs.com alibabacloud.com baidubce.com bcebos.com \
-        volcengine.com volces.com; do
+        volcengine.com volces.com douyin.com douyincdn.com douyinpic.com \
+        douyinstatic.com amemv.cn amemv.net douyinfe.com douyinliving.com \
+        douyinvod.com idouyinliving.com idouyinpic.com idouyinstatic.com \
+        idouyinvod.com iesdouyin.com iesdouyin.net duoshan.com weibo.com \
+        weibo.cn weibocdn.com sinaimg.cn sinaimg.com sinajs.cn login.sina.com.cn \
+        t.cn zhihu.com zhimg.com vzuu.com douban.com doubanio.com okjike.com \
+        ruguoapp.com jellow.site static.codefuture.top xiaohongshu.com xhsrcdn.com \
+        xhscdn.com xhscdn.net xhslink.com kuaishou.cn ksapisrv.com \
+        kuaishouapps.com kspkg.com kwaicdn.com kwimgs.com yximgs.com \
+        wechat.com bilibili.com bilivideo.com hdslb.com; do
         grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     for domain in starbucks.com mcdonalds.com yummy.tech cloudflare.com datadome.co \
-        akamaized.net myqcloud.com amazonaws.com qiniudn.com ksyuncs.com; do
+        akamaized.net myqcloud.com amazonaws.com qiniudn.com ksyuncs.com \
+        tiktok.com tiktokv.com rednote.com ibytedtos.com; do
         ! grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]
