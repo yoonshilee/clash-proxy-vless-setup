@@ -118,7 +118,8 @@ for profile in "${subscription_file}" \
         ctyun.cn ctyunapi.cn ecloud.10086.cn cmecloud.cn cucloud.cn ksyun.com \
         ucloud.cn qingcloud.com qiniu.com qiniuapi.com qiniup.com static-file.qiniu.io \
         aliyun.com aliyuncs.com alibabacloud.com baidubce.com bcebos.com \
-        volcengine.com volces.com douyin.com douyincdn.com douyinpic.com \
+        volcengine.com volces.com snssdk.com amemv.com douyin.com douyincdn.com douyinpic.com \
+        lf3-static.bytednsdoc.com v5-dy-o-abtest.zjcdn.com ixiguavideo.com \
         douyinstatic.com amemv.cn amemv.net douyinfe.com douyinliving.com \
         douyinvod.com idouyinliving.com idouyinpic.com idouyinstatic.com \
         idouyinvod.com iesdouyin.com iesdouyin.net duoshan.com weibo.com \
@@ -132,7 +133,7 @@ for profile in "${subscription_file}" \
     done
     for domain in starbucks.com mcdonalds.com yummy.tech cloudflare.com datadome.co \
         akamaized.net myqcloud.com amazonaws.com qiniudn.com ksyuncs.com \
-        tiktok.com tiktokv.com rednote.com ibytedtos.com; do
+        tiktok.com tiktokv.com rednote.com ibytedtos.com bytednsdoc.com zjcdn.com; do
         ! grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]

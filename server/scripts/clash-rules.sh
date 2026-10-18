@@ -62,6 +62,11 @@ CLASH_GITHUB_PROXY_SUFFIXES=(
 )
 
 CLASH_CHINA_APP_DIRECT_SUFFIXES=(
+    # Keep mobile media hosts scoped instead of bypassing their entire CDN.
+    # https://github.com/blackmatrix7/ios_rule_script/blob/master/rule/Clash/DouYin/DouYin.list
+    "lf3-static.bytednsdoc.com"
+    "v5-dy-o-abtest.zjcdn.com"
+    "ixiguavideo.com"
     # Social feeds, media, and login assets; keep shared CDNs and TikTok unchanged.
     "amemv.cn"
     "amemv.net"
