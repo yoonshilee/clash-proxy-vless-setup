@@ -62,6 +62,16 @@ CLASH_GITHUB_PROXY_SUFFIXES=(
 )
 
 CLASH_CHINA_APP_DIRECT_SUFFIXES=(
+    # Keep domestic carrier service halls and number authentication on local egress.
+    "10086.cn"
+    "chinamobile.com"
+    "cmpassport.com"
+    "10010.com"
+    "10010.cn"
+    "wosms.cn"
+    "189.cn"
+    "id6.me"
+    "10099.com.cn"
     # Keep mobile media hosts scoped instead of bypassing their entire CDN.
     # https://github.com/blackmatrix7/ios_rule_script/blob/master/rule/Clash/DouYin/DouYin.list
     "lf3-static.bytednsdoc.com"

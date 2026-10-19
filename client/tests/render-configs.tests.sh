@@ -94,7 +94,9 @@ for profile in "${subscription_file}" \
     "${TEMP_DIR}/rendered/clash-verge.yaml" \
     "${TEMP_DIR}/rendered/clash-verge-check.yaml" \
     "${TEMP_DIR}/rendered/mihomo-provider.yaml"; do
-    for domain in dianping.com dpfile.com meituan.com meituan.net sankuai.com \
+    for domain in 10086.cn chinamobile.com cmpassport.com 10010.com 10010.cn \
+        wosms.cn 189.cn id6.me 10099.com.cn \
+        dianping.com dpfile.com meituan.com meituan.net sankuai.com \
         amap.com autonavi.com gaode.com oray.com oray.net orayimg.com \
         uuyc.163.com netease.com todesk.com todesk.cn dingtalk.com feishu.cn \
         feishucdn.com wps.cn kdocs.cn qq.com qpic.cn baidupcs.com alipan.com \
