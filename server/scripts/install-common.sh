@@ -511,6 +511,8 @@ validate_subscription_yaml() {
         'DOMAIN-SUFFIX,office.net,DIRECT'
         'DOMAIN-SUFFIX,microsoft.com,DIRECT'
         'DOMAIN-SUFFIX,apple.com,DIRECT'
+        'DOMAIN-SUFFIX,apple.com.cn,DIRECT'
+        'DOMAIN-SUFFIX,itunes.com,DIRECT'
         'DOMAIN-SUFFIX,icloud.com,DIRECT'
         'DOMAIN-SUFFIX,icloud.com.cn,DIRECT'
         'DOMAIN-SUFFIX,apple-cloudkit.com,DIRECT'

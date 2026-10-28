@@ -27,6 +27,8 @@ required_patterns=(
     'DOMAIN-SUFFIX,office365.com,DIRECT'
     'DOMAIN-SUFFIX,office.net,DIRECT'
     'DOMAIN-SUFFIX,apple.com,DIRECT'
+    'DOMAIN-SUFFIX,apple.com.cn,DIRECT'
+    'DOMAIN-SUFFIX,itunes.com,DIRECT'
     'DOMAIN-SUFFIX,icloud.com,DIRECT'
     'DOMAIN-SUFFIX,icloud.com.cn,DIRECT'
     'DOMAIN-SUFFIX,apple-cloudkit.com,DIRECT'
