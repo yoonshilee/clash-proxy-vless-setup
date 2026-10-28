@@ -22,6 +22,14 @@ CLASH_MICROSOFT_DIRECT_SUFFIXES=(
 )
 
 CLASH_APPLE_DIRECT_SUFFIXES=(
+    "apple.com"
+    "icloud.com"
+    "icloud.com.cn"
+    "icloud-content.com"
+    "apple-cloudkit.com"
+    "apple-livephotoskit.com"
+    "apple-dns.net"
+    "apzones.com"
     "apps.apple.com"
     "appstore.com"
     "itunes.apple.com"

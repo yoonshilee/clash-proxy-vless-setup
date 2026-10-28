@@ -94,7 +94,9 @@ for profile in "${subscription_file}" \
     "${TEMP_DIR}/rendered/clash-verge.yaml" \
     "${TEMP_DIR}/rendered/clash-verge-check.yaml" \
     "${TEMP_DIR}/rendered/mihomo-provider.yaml"; do
-    for domain in 10086.cn chinamobile.com cmpassport.com 10010.com 10010.cn \
+    for domain in apple.com icloud.com icloud.com.cn icloud-content.com \
+        apple-cloudkit.com apple-livephotoskit.com apple-dns.net apzones.com \
+        10086.cn chinamobile.com cmpassport.com 10010.com 10010.cn \
         wosms.cn 189.cn id6.me 10099.com.cn \
         dianping.com dpfile.com meituan.com meituan.net sankuai.com \
         amap.com autonavi.com gaode.com oray.com oray.net orayimg.com \
