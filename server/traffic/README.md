@@ -1,0 +1,47 @@
+# Domain Traffic Preview
+
+This preview runs a separate loopback-only Xray node, a SOCKS traffic collector, a dashboard, and an email scheduler. The existing Xray service and subscription remain separate. Only traffic sent through the preview node is counted.
+
+The collector counts successfully forwarded application bytes by domain and UTC minute. IP-only destinations are shown as `Unknown`; protocol overhead is not included. Connections carrying requests for more than one domain are attributed to the destination supplied to the proxy. The totals are not a VPS billing measurement. Data is retained for 90 days. Traffic while the collector is stopped, or pending counters lost during an abrupt termination, can create gaps.
+
+## Local verification
+
+Create a Python 3.12 virtual environment, install `requirements.txt`, and set `XRAY_TEST_BINARY` to a local Xray 26.3.27 binary. From this directory, run:
+
+```sh
+python -m unittest -v test_collector test_xray_integration test_preview
+TRAFFIC_DATA_DIR=/tmp/traffic-test TRAFFIC_SECRET_KEY=local-test-key python manage.py test dashboard
+```
+
+The tests create temporary configuration and credentials. They do not require access to the VPS.
+
+## Isolated VPS preview
+
+Run the preview only on a Linux VPS with systemd, an existing Xray binary at `/usr/local/bin/xray`, and Python 3.12. Install the Python requirements into a dedicated directory readable by the preview service; do not install them into the system Python environment. Copy this directory to a dedicated, root-owned application directory, then start the preview with `TRAFFIC_PREVIEW_PYTHONPATH` set to the dependency directory:
+
+```sh
+sudo TRAFFIC_PREVIEW_PYTHONPATH=/opt/clash-traffic-preview/deps bash /opt/clash-traffic-preview/app/start-preview.sh
+sudo systemctl status clash-traffic-preview.service
+```
+
+The transient service uses a private systemd user, a 256 MiB memory limit, a 25% CPU quota, and separate persistent data in `/var/lib/clash-traffic-preview`. It binds only to loopback and does not open firewall ports. The preview is not automatically enabled after a reboot.
+
+Set `TRAFFIC_VPS_SSH_TARGET` to the SSH destination already used to access the VPS. Open an SSH tunnel from the personal computer using the same identity:
+
+```sh
+ssh -N -L 32850:127.0.0.1:32850 -L 32853:127.0.0.1:32853 "$TRAFFIC_VPS_SSH_TARGET"
+```
+
+Open `http://127.0.0.1:32850/`. The initial dashboard login is stored in the root-readable `/var/lib/clash-traffic-preview/preview-login.txt` on the VPS. Send a test request from a second terminal:
+
+```sh
+curl --socks5-hostname 127.0.0.1:32853 https://example.com/
+```
+
+The SSH tunnel forwards TCP only. The collector's UDP path is exercised by the local automated tests; UDP traffic from a personal computer is not forwarded by this preview tunnel. To stop the preview, run `sudo systemctl stop clash-traffic-preview.service`. This does not delete its data.
+
+## Email
+
+The dashboard accepts one recipient and STARTTLS or implicit TLS SMTP settings. The password is stored in the preview's private SQLite database. Set a daily or weekly schedule and its IANA time zone, or send a selected UTC time range from the overview. Scheduled reports are retried after failures; an interruption after the SMTP server accepts a message but before the sent marker is saved can produce a duplicate.
+
+The preview is not a public-facing deployment. Do not expose its HTTP or SOCKS listeners to the internet.

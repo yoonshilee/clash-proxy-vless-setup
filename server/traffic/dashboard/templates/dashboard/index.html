@@ -1,0 +1,9 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Overview · Traffic{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">PROXY ACTIVITY</p><h1>Domain traffic</h1><p class="muted">Only traffic through the monitored node appears here. Times are UTC; outages may leave gaps.</p></div><span class="badge">Collector: {% if collector_running %}running{% else %}not reporting{% endif %}</span></div>
+<section class="filter"><form method="get" class="range">{{ form.non_field_errors }}<label>From (UTC){{ form.start }}{{ form.start.errors }}</label><label>Until (UTC){{ form.end }}{{ form.end.errors }}</label><button type="submit">Apply range</button></form></section>
+<section class="summary" aria-label="Traffic totals"><div><span>UPLOAD</span><strong>{{ upload|filesizeformat }}</strong></div><div><span>DOWNLOAD</span><strong>{{ download|filesizeformat }}</strong></div><div><span>DESTINATIONS</span><strong>{{ rows|length }}</strong></div></section>
+<section class="table-section"><div class="section-heading"><div><h2>Destinations</h2><p class="muted">Ordered by total traffic. Unknown includes destinations without an available domain.</p></div><form method="post" action="{% url 'send_report' %}">{% csrf_token %}{{ form.start.as_hidden }}{{ form.end.as_hidden }}<button class="secondary" type="submit">Email this report</button></form></div>
+<div class="table-wrap"><table><thead><tr><th>DOMAIN</th><th>UPLOAD</th><th>DOWNLOAD</th></tr></thead><tbody>{% for row in rows %}<tr><th scope="row">{{ row.domain }}</th><td>{{ row.upload|filesizeformat }}</td><td>{{ row.download|filesizeformat }}</td></tr>{% empty %}<tr><td colspan="3" class="empty">No traffic recorded in this period.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

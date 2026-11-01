@@ -1,0 +1,7 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Email reports · Traffic{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">DELIVERY</p><h1>Email reports</h1><p class="muted">Configure an encrypted SMTP connection and a recurring summary.</p></div></div>
+{% if last_error %}<p class="notice" role="alert">{{ last_error }}</p>{% endif %}
+<form method="post" class="settings-form">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}<button type="submit">Save settings</button></form>
+{% endblock %}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Traffic{% endblock %}</title>
+  {% include "dashboard/styles.html" %}
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">↗</span> Traffic</a>
+  {% if user.is_authenticated %}<nav aria-label="Main navigation"><a href="{% url 'dashboard' %}">Overview</a><a href="{% url 'settings' %}">Email reports</a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet" type="submit">Sign out</button></form></nav>{% endif %}
+</header>
+<main>
+  {% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -2,3 +2,5 @@ server/config/setup.conf
 server/config/setup.conf.bak
 client/local-config/
 client/user-config/
+__pycache__/
+*.py[cod]

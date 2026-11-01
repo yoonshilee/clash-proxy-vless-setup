@@ -1,0 +1,6 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Sign in · Traffic{% endblock %}
+{% block content %}
+<section class="login"><p class="eyebrow">PRIVATE DASHBOARD</p><h1>Welcome back.</h1><p class="muted">Sign in to view your proxy traffic.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Sign in</button></form></section>
+{% endblock %}
