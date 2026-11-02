@@ -10,8 +10,8 @@ from .models import ReportSettings
 class RangeForm(forms.Form):
     """Validate a report interval in UTC."""
 
-    start = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
-    end = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
+    start = forms.DateTimeField(widget=forms.DateTimeInput(format="%Y-%m-%d %H:%M", attrs={"placeholder": "YYYY-MM-DD HH:MM", "autocomplete": "off"}))
+    end = forms.DateTimeField(widget=forms.DateTimeInput(format="%Y-%m-%d %H:%M", attrs={"placeholder": "YYYY-MM-DD HH:MM", "autocomplete": "off"}))
 
     def clean(self):
         """Require an increasing, minute-aligned interval."""

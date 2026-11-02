@@ -92,6 +92,23 @@ class ReportTests(TestCase):
         self.assertContains(response, 'data-sort-value="">Unavailable')
         self.assertContains(response, 'class="sort-button"', count=4)
 
+    def test_time_picker_preserves_selected_minutes_for_query_and_email(self):
+        """Use the date-time picker and retain non-midnight UTC boundaries."""
+        self.client.force_login(self.user)
+        selected = {"start": "2026-01-01T11:17", "end": "2026-01-01T12:43"}
+        response = self.client.get(reverse("dashboard"), selected)
+        self.assertContains(response, 'value="2026-01-01T11:17"')
+        self.assertContains(response, 'value="2026-01-01T12:43"')
+        self.assertContains(response, '<input type="hidden" name="start" value="2026-01-01T11:17">')
+        self.assertContains(response, '<input type="hidden" name="end" value="2026-01-01T12:43">')
+        self.assertContains(response, "enableTime: true")
+        self.assertContains(response, "minuteIncrement: 1")
+        self.assertContains(response, "time_24hr: true")
+        with patch("dashboard.views.send") as send_report:
+            self.client.post(reverse("send_report"), selected)
+        self.assertEqual(send_report.call_args.kwargs["start"], datetime(2026, 1, 1, 11, 17, tzinfo=timezone.utc))
+        self.assertEqual(send_report.call_args.kwargs["end"], datetime(2026, 1, 1, 12, 43, tzinfo=timezone.utc))
+
     def test_email_uses_starttls_and_contains_totals(self):
         """Send the selected interval through encrypted SMTP."""
         TrafficMinute.objects.create(minute=self.start, domain="real.example", source=SOURCE_ORIGINAL, upload=6, download=9)

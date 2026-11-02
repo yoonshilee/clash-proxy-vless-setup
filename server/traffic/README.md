@@ -48,4 +48,6 @@ The SSH tunnel forwards TCP only. The collector's UDP path is exercised by the l
 
 The dashboard accepts one recipient and STARTTLS or implicit TLS SMTP settings. The password is stored in the preview's private SQLite database. Set a daily or weekly schedule and its IANA time zone, or send a selected UTC time range from the overview. Reports contain original-node access counts and measured byte totals, or label byte totals unavailable when no measurements exist. Scheduled reports are retried after failures; an interruption after the SMTP server accepts a message but before the sent marker is saved can produce a duplicate.
 
+The overview uses the bundled Flatpickr 4.6.13 date-time picker. Dates and times are entered in UTC, with one-minute precision; the library is served locally and does not require a third-party CDN.
+
 The preview is not a public-facing deployment. Do not expose its HTTP or SOCKS listeners to the internet.
