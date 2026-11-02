@@ -36,6 +36,22 @@ sudo rm -f /etc/clash-traffic/admin-login.txt
 
 The dashboard is served over HTTPS by Caddy through a private local socket. Its application account cannot read the Xray private configuration. Login failures are limited by client IP; after five failures, the address is temporarily blocked for 15 minutes. The application and collector share the traffic database. SMTP credentials are stored in that database and must be protected by restricting server access and backups.
 
+## Access an existing preview
+
+The preview runs only on the VPS loopback interface. To view an already installed preview, set `VPS_SSH_TARGET` to the SSH username and address you use for that VPS, and run this command on your own computer:
+
+```sh
+ssh -N -L 32850:127.0.0.1:32850 "$VPS_SSH_TARGET"
+```
+
+Keep the terminal open and visit <http://127.0.0.1:32850/> on the same computer. The preview username is `preview`. To read the initial password, connect to the VPS in another terminal and run:
+
+```sh
+sudo cat /var/lib/private/clash-traffic-preview/preview-login.txt
+```
+
+Closing the SSH tunnel does not stop the proxy. If the page is unavailable, check `sudo systemctl status clash-traffic-preview.service --no-pager` on the VPS. The preview does not have the public dashboard's separate application and collector accounts; migrating an existing preview requires a separate procedure.
+
 ## Effects on the existing proxy
 
 Installation does not restart Xray or replace its configuration, and Caddy is reloaded to add the dashboard site. The installer opens TCP 9443 in UFW and installs a firewall gate: healthy new connections are sent to a separate collector using the existing node credentials. Connections already established on the original Xray listener continue there. If collection becomes unhealthy, the watchdog returns new connections to the original listener; connections already using the collector can be interrupted. The redirect expires within 12 seconds if the watchdog stops. Existing connections cannot be measured retroactively, and collection failures or abrupt termination can leave gaps.
