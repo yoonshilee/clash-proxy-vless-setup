@@ -1,9 +1,39 @@
 {% extends "dashboard/base.html" %}
+{% load l10n %}
 {% block title %}Overview · Traffic{% endblock %}
 {% block content %}
 <div class="heading"><div><p class="eyebrow">PROXY ACTIVITY</p><h1>Server domains</h1><p class="muted">Original-node access records. Times are UTC; outages may leave gaps.</p></div><span class="badge">Original node: {% if journal_running %}reading{% else %}not reporting{% endif %}</span></div>
 <section class="filter"><form method="get" class="range">{{ form.non_field_errors }}<label>From (UTC){{ form.start }}{{ form.start.errors }}</label><label>Until (UTC){{ form.end }}{{ form.end.errors }}</label><button type="submit">Apply range</button></form></section>
 <section class="table-section"><div class="section-heading"><div><h2>Original node</h2><p class="muted">Connection counts come from the Xray access log. Bytes cover measured traffic only; gaps may occur.</p><p class="muted">Traffic routing: {{ gate_status }} · Collector: {% if original_collector_running %}running{% else %}not reporting{% endif %}</p></div><form method="post" action="{% url 'send_report' %}">{% csrf_token %}{{ form.start.as_hidden }}{{ form.end.as_hidden }}<button class="secondary" type="submit">Email this report</button></form></div>
 <section class="summary" aria-label="Measured original-node traffic"><div><span>UPLOAD</span><strong>{% if measured %}{{ upload|filesizeformat }}{% else %}Unavailable{% endif %}</strong></div><div><span>DOWNLOAD</span><strong>{% if measured %}{{ download|filesizeformat }}{% else %}Unavailable{% endif %}</strong></div><div><span>DESTINATIONS</span><strong>{{ access_rows|length }}</strong></div></section>
-<div class="table-wrap"><table><thead><tr><th>DOMAIN</th><th>CONNECTIONS</th><th>UPLOAD</th><th>DOWNLOAD</th></tr></thead><tbody>{% for row in access_rows %}<tr><th scope="row">{{ row.domain }}</th><td>{{ row.connections|default_if_none:"Unavailable" }}</td><td>{% if row.traffic %}{{ row.traffic.upload|filesizeformat }}{% else %}Unavailable{% endif %}</td><td>{% if row.traffic %}{{ row.traffic.download|filesizeformat }}{% else %}Unavailable{% endif %}</td></tr>{% empty %}<tr><td colspan="4" class="empty">No original-node access records in this period.</td></tr>{% endfor %}</tbody></table></div></section>
+<div class="table-wrap"><table id="domain-traffic"><thead><tr><th scope="col"><button class="sort-button" type="button">DOMAIN <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" type="button">CONNECTIONS <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" type="button">UPLOAD <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" type="button">DOWNLOAD <span aria-hidden="true">↕</span></button></th></tr></thead><tbody>{% for row in access_rows %}<tr><th scope="row" data-sort-value="{{ row.domain }}">{{ row.domain }}</th><td data-sort-value="{{ row.connections|default_if_none:''|unlocalize }}">{{ row.connections|default_if_none:"Unavailable" }}</td><td data-sort-value="{% if row.traffic %}{{ row.traffic.upload|unlocalize }}{% endif %}">{% if row.traffic %}{{ row.traffic.upload|filesizeformat }}{% else %}Unavailable{% endif %}</td><td data-sort-value="{% if row.traffic %}{{ row.traffic.download|unlocalize }}{% endif %}">{% if row.traffic %}{{ row.traffic.download|filesizeformat }}{% else %}Unavailable{% endif %}</td></tr>{% empty %}<tr><td colspan="4" class="empty">No original-node access records in this period.</td></tr>{% endfor %}</tbody></table></div></section>
+<script>
+  const table = document.getElementById("domain-traffic");
+  const headers = Array.from(table.tHead.rows[0].cells);
+  const body = table.tBodies[0];
+  const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: "base"});
+  let selectedColumn = -1;
+  let ascending = false;
+  headers.forEach((header, column) => {
+    header.querySelector("button").addEventListener("click", () => {
+      ascending = selectedColumn === column ? !ascending : column === 0;
+      selectedColumn = column;
+      headers.forEach(item => {
+        item.removeAttribute("aria-sort");
+        item.querySelector("span").textContent = "↕";
+      });
+      header.setAttribute("aria-sort", ascending ? "ascending" : "descending");
+      header.querySelector("span").textContent = ascending ? "↑" : "↓";
+      const rows = Array.from(body.rows).filter(row => row.cells.length === headers.length);
+      rows.sort((left, right) => {
+        const a = left.cells[column].dataset.sortValue;
+        const b = right.cells[column].dataset.sortValue;
+        if (a === "" || b === "") return a === b ? 0 : a === "" ? 1 : -1;
+        const result = column === 0 ? collator.compare(a, b) : (BigInt(a) > BigInt(b)) - (BigInt(a) < BigInt(b));
+        return result ? result * (ascending ? 1 : -1) : collator.compare(left.cells[0].dataset.sortValue, right.cells[0].dataset.sortValue);
+      });
+      body.append(...rows);
+    });
+  });
+</script>
 {% endblock %}

@@ -81,6 +81,17 @@ class ReportTests(TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().password, "private-value")
 
+    def test_sorting_has_exact_values_and_distinguishes_missing_data(self):
+        """Expose raw byte counts and keep missing values distinct from zero."""
+        AccessMinute.objects.create(minute=self.start, domain="missing.example", connections=1)
+        TrafficMinute.objects.create(minute=self.start, domain="large.example", source=SOURCE_ORIGINAL, upload=9007199254740993, download=0)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("dashboard"), {"start": "2026-01-01T00:00", "end": "2026-01-01T00:01"})
+        self.assertContains(response, 'data-sort-value="9007199254740993"')
+        self.assertContains(response, 'data-sort-value="0"')
+        self.assertContains(response, 'data-sort-value="">Unavailable')
+        self.assertContains(response, 'class="sort-button"', count=4)
+
     def test_email_uses_starttls_and_contains_totals(self):
         """Send the selected interval through encrypted SMTP."""
         TrafficMinute.objects.create(minute=self.start, domain="real.example", source=SOURCE_ORIGINAL, upload=6, download=9)
