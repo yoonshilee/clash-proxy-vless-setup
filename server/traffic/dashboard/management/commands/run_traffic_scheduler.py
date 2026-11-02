@@ -7,7 +7,8 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from dashboard.models import ReportSettings, TrafficMinute
+from dashboard.journal import ingest
+from dashboard.models import AccessMinute, ReportSettings, TrafficMinute
 from dashboard.reports import RETENTION_DAYS, scheduled_period, send
 
 LOGGER = logging.getLogger(__name__)
@@ -20,6 +21,8 @@ def run_once(now):
         now: Timezone-aware current time.
     """
     TrafficMinute.objects.filter(minute__lt=now - timedelta(days=RETENTION_DAYS)).delete()
+    AccessMinute.objects.filter(minute__lt=now - timedelta(days=RETENTION_DAYS)).delete()
+    ingest()
     settings, _ = ReportSettings.objects.get_or_create(pk=1)
     period = scheduled_period(settings, now)
     if not period:

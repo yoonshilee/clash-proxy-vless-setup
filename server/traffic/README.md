@@ -1,8 +1,10 @@
 # Domain Traffic Preview
 
-This preview runs a separate loopback-only Xray node, a SOCKS traffic collector, a dashboard, and an email scheduler. The existing Xray service and subscription remain separate. Only traffic sent through the preview node is counted.
+This preview reads access records from the existing Xray service and shows its destination domains and connection counts. It also runs a separate loopback-only Xray node, a SOCKS traffic collector, a dashboard, and an email scheduler. The existing Xray service and subscription remain separate from the test node.
 
-The collector counts successfully forwarded application bytes by domain and UTC minute. IP-only destinations are shown as `Unknown`; protocol overhead is not included. Connections carrying requests for more than one domain are attributed to the destination supplied to the proxy. The totals are not a VPS billing measurement. Data is retained for 90 days. Traffic while the collector is stopped, or pending counters lost during an abrupt termination, can create gaps.
+The original Xray access log does not provide per-domain byte counts, so these values are shown as unavailable. The first journal read imports at most 1,000 entries from the previous 15 minutes; later reads continue from the saved journal cursor. The reader stores destination domains and connection counts, not client addresses.
+
+The separate test-node collector counts successfully forwarded application bytes by domain and UTC minute. IP-only destinations are shown as `Unknown`; protocol overhead is not included. Connections carrying requests for more than one domain are attributed to the destination supplied to the proxy. The totals are not a VPS billing measurement. Data is retained for 90 days. Traffic while a reader is stopped, journal entries are rotated away, or pending counters are lost during an abrupt termination can create gaps.
 
 ## Local verification
 
@@ -24,7 +26,7 @@ sudo TRAFFIC_PREVIEW_PYTHONPATH=/opt/clash-traffic-preview/deps bash /opt/clash-
 sudo systemctl status clash-traffic-preview.service
 ```
 
-The transient service uses a private systemd user, a 256 MiB memory limit, a 25% CPU quota, and separate persistent data in `/var/lib/clash-traffic-preview`. It binds only to loopback and does not open firewall ports. The preview is not automatically enabled after a reboot.
+The transient service uses a private systemd user with read access to the systemd journal, a 256 MiB memory limit, a 25% CPU quota, and separate persistent data in `/var/lib/clash-traffic-preview`. It binds only to loopback and does not open firewall ports. The preview is not automatically enabled after a reboot.
 
 Set `TRAFFIC_VPS_SSH_TARGET` to the SSH destination already used to access the VPS. Open an SSH tunnel from the personal computer using the same identity:
 
@@ -42,6 +44,6 @@ The SSH tunnel forwards TCP only. The collector's UDP path is exercised by the l
 
 ## Email
 
-The dashboard accepts one recipient and STARTTLS or implicit TLS SMTP settings. The password is stored in the preview's private SQLite database. Set a daily or weekly schedule and its IANA time zone, or send a selected UTC time range from the overview. Scheduled reports are retried after failures; an interruption after the SMTP server accepts a message but before the sent marker is saved can produce a duplicate.
+The dashboard accepts one recipient and STARTTLS or implicit TLS SMTP settings. The password is stored in the preview's private SQLite database. Set a daily or weekly schedule and its IANA time zone, or send a selected UTC time range from the overview. Reports contain original-node access counts and label unavailable byte totals. Scheduled reports are retried after failures; an interruption after the SMTP server accepts a message but before the sent marker is saved can produce a duplicate.
 
 The preview is not a public-facing deployment. Do not expose its HTTP or SOCKS listeners to the internet.

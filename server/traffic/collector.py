@@ -16,6 +16,8 @@ import threading
 import time
 from pathlib import Path
 
+from dashboard.constants import SOURCE_ORIGINAL, SOURCE_PREVIEW
+
 LOGGER = logging.getLogger("traffic-collector")
 UNKNOWN = "Unknown"
 MAX_PENDING = 4096
@@ -118,13 +120,15 @@ def encode_datagram(address, payload):
 class Counters:
     """Aggregate pending samples in memory and periodically persist them."""
 
-    def __init__(self, database):
+    def __init__(self, database, source=SOURCE_PREVIEW):
         """Initialize an aggregator for a database.
 
         Args:
             database: SQLite database path initialized by the dashboard.
+            source: Original or isolated preview node.
         """
         self.database = str(database)
+        self.source = source
         self.pending = collections.defaultdict(lambda: [0, 0])
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
@@ -152,12 +156,12 @@ class Counters:
         try:
             with sqlite3.connect(self.database, timeout=10) as db:
                 db.executemany(
-                    "INSERT INTO dashboard_trafficminute (minute, domain, upload, download) VALUES (?, ?, ?, ?) "
-                    "ON CONFLICT(minute, domain) DO UPDATE SET upload = upload + excluded.upload, download = download + excluded.download",
-                    [(minute, domain, *counts) for (minute, domain), counts in pending.items()],
+                    "INSERT INTO dashboard_trafficminute (minute, domain, source, upload, download) VALUES (?, ?, ?, ?, ?) "
+                    "ON CONFLICT(source, minute, domain) DO UPDATE SET upload = upload + excluded.upload, download = download + excluded.download",
+                    [(minute, domain, self.source, *counts) for (minute, domain), counts in pending.items()],
                 )
                 now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                db.execute("INSERT INTO dashboard_collectorstatus (id, heartbeat) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET heartbeat = excluded.heartbeat", (now,))
+                db.execute("INSERT INTO dashboard_collectorstatus (source, heartbeat) VALUES (?, ?) ON CONFLICT(source) DO UPDATE SET heartbeat = excluded.heartbeat", (self.source, now))
         except sqlite3.Error:
             LOGGER.exception("Traffic data could not be saved")
             with self.lock:
@@ -364,9 +368,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--database", type=Path, required=True)
     parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--source", choices=(SOURCE_PREVIEW, SOURCE_ORIGINAL), default=SOURCE_PREVIEW)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
-    counters = Counters(args.database)
+    counters = Counters(args.database, args.source)
     counters.thread.start()
     with SocksServer(("127.0.0.1", args.port), counters) as server:
         def stop(_signum, _frame):

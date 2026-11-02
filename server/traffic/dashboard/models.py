@@ -2,19 +2,22 @@
 
 from django.db import models
 
+from .constants import SOURCE_PREVIEW
+
 
 class TrafficMinute(models.Model):
     """Count forwarded bytes for one destination and UTC minute."""
 
     minute = models.DateTimeField(db_index=True)
     domain = models.CharField(max_length=253)
+    source = models.CharField(max_length=16, default=SOURCE_PREVIEW)
     upload = models.BigIntegerField(default=0)
     download = models.BigIntegerField(default=0)
 
     class Meta:
         """Prevent duplicate domain and minute samples."""
 
-        constraints = [models.UniqueConstraint(fields=["minute", "domain"], name="traffic_minute_domain")]
+        constraints = [models.UniqueConstraint(fields=["source", "minute", "domain"], name="traffic_source_minute_domain")]
 
 
 class ReportSettings(models.Model):
@@ -40,3 +43,24 @@ class CollectorStatus(models.Model):
     """Record the latest successful collector persistence heartbeat."""
 
     heartbeat = models.DateTimeField(null=True)
+    source = models.CharField(max_length=16, unique=True, default=SOURCE_PREVIEW)
+
+
+class AccessMinute(models.Model):
+    """Count original-node connections by destination and UTC minute."""
+
+    minute = models.DateTimeField(db_index=True)
+    domain = models.CharField(max_length=253)
+    connections = models.BigIntegerField(default=0)
+
+    class Meta:
+        """Prevent duplicate access samples."""
+
+        constraints = [models.UniqueConstraint(fields=["minute", "domain"], name="access_minute_domain")]
+
+
+class JournalState(models.Model):
+    """Persist the original-node journal cursor and latest successful read."""
+
+    cursor = models.TextField(blank=True)
+    last_success = models.DateTimeField(null=True)

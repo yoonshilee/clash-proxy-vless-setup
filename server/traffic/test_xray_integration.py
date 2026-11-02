@@ -32,11 +32,15 @@ def free_port():
 
 
 class Echo(socketserver.BaseRequestHandler):
-    """Echo a fixed test payload over TCP."""
+    """Echo test payloads over a persistent TCP connection."""
 
     def handle(self):
-        """Return the payload received from the test client."""
-        self.request.sendall(read_exact(self.request, 1024))
+        """Return payloads until the client closes the connection."""
+        try:
+            while data := self.request.recv(65536):
+                self.request.sendall(data)
+        except OSError:
+            pass
 
 
 class EchoServer(socketserver.ThreadingTCPServer):
@@ -121,7 +125,8 @@ class XrayIntegrationTests(unittest.TestCase):
                     return read_exact(conn, 1024)
 
             try:
-                collector = start([sys.executable, str(root / "collector.py"), "--database", str(database), "--port", str(collector_port)])
+                collector_name = "collector_async.py" if os.environ.get("XRAY_TEST_ASYNC") == "1" else "collector.py"
+                collector = start([sys.executable, str(root / collector_name), "--database", str(database), "--port", str(collector_port)])
                 keys = subprocess.check_output([XRAY, "x25519"], text=True)
                 private = re.search(r"^PrivateKey:\s*(\S+)", keys, re.M).group(1)
                 public = re.search(r"^Password \(PublicKey\):\s*(\S+)", keys, re.M).group(1)
@@ -160,6 +165,20 @@ class XrayIntegrationTests(unittest.TestCase):
                 with sqlite3.connect(database) as db:
                     self.assertEqual(db.execute("SELECT upload, download FROM dashboard_trafficminute WHERE domain='localhost'").fetchone(), (1024, 1024))
                     self.assertEqual(db.execute("SELECT upload, download FROM dashboard_trafficminute WHERE domain='Unknown'").fetchone(), (len(payload), len(payload)))
+                connections = []
+                try:
+                    for _ in range(int(os.environ.get("XRAY_STRESS_CONNECTIONS", "0"))):
+                        conn, _ = negotiate(client_port, 1, "localhost", target.server_address[1])
+                        conn.sendall(b"x" * 1024)
+                        self.assertEqual(read_exact(conn, 1024), b"x" * 1024)
+                        connections.append(conn)
+                    for conn in connections:
+                        conn.sendall(b"y")
+                    for conn in connections:
+                        self.assertEqual(read_exact(conn, 1), b"y")
+                finally:
+                    for conn in connections:
+                        conn.close()
                 collector.terminate()
                 collector.wait(timeout=5)
                 self.assertEqual(transfer(direct_port), b"x" * 1024)

@@ -119,15 +119,16 @@ class CollectorTests(unittest.TestCase):
         control, relay_port = negotiate(self.proxy.server_address[1], 3, "0.0.0.0", 0)
         getaddrinfo = socket.getaddrinfo
 
-        def resolve(host, port, **kwargs):
+        def resolve(host, port, *args, **kwargs):
             """Resolve the test domain to the IPv4 echo endpoint.
 
             Args:
                 host: Destination hostname.
                 port: Destination port.
+                *args: Positional socket lookup options.
                 **kwargs: Socket lookup options.
             """
-            return getaddrinfo("127.0.0.1" if host == "localhost" else host, port, **kwargs)
+            return getaddrinfo("127.0.0.1" if host == "localhost" else host, port, *args, **kwargs)
 
         with patch("collector.socket.getaddrinfo", side_effect=resolve), control, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
             client.settimeout(5)
@@ -188,8 +189,8 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "traffic.sqlite3"
             with sqlite3.connect(path) as db:
-                db.execute("CREATE TABLE dashboard_trafficminute (minute text, domain text, upload integer, download integer, UNIQUE(minute, domain))")
-                db.execute("CREATE TABLE dashboard_collectorstatus (id integer PRIMARY KEY, heartbeat text)")
+                db.execute("CREATE TABLE dashboard_trafficminute (minute text, domain text, source text, upload integer, download integer, UNIQUE(source, minute, domain))")
+                db.execute("CREATE TABLE dashboard_collectorstatus (id integer PRIMARY KEY, source text UNIQUE, heartbeat text)")
             counters = Counters(path)
             counters.add("Unknown", 0, 12)
             counters.flush()

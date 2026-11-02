@@ -21,9 +21,10 @@ PYTHONPATH="${DEPENDENCIES}" /usr/bin/python3 -c 'import django, gunicorn'
 
 systemd-run --unit="${UNIT}" \
     --property=DynamicUser=yes \
+    --property=SupplementaryGroups=systemd-journal \
     --property=StateDirectory="${UNIT}" \
     --property=WorkingDirectory="${SCRIPT_DIR}" \
-    --property=MemoryHigh=192M \
+    --property=MemoryHigh=224M \
     --property=MemoryMax=256M \
     --property=CPUQuota=25% \
     --property=TasksMax=256 \

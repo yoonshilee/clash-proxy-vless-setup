@@ -10,7 +10,8 @@ from django.views.decorators.http import require_POST
 
 from .forms import RangeForm, ReportSettingsForm
 from .models import ReportSettings
-from .reports import collector_running, send, summarize
+from .constants import SOURCE_ORIGINAL
+from .reports import collector_running, journal_running, original_gate_status, original_rows, send
 
 
 def default_range():
@@ -29,8 +30,11 @@ def dashboard(request):
     form = RangeForm(request.GET if request.GET else None, initial=default_range())
     if not request.GET:
         form = RangeForm(default_range())
-    rows = summarize(**form.cleaned_data) if form.is_valid() else []
-    return render(request, "dashboard/index.html", {"form": form, "rows": rows, "upload": sum(row["upload"] for row in rows), "download": sum(row["download"] for row in rows), "collector_running": collector_running(timezone.now())})
+    valid = form.is_valid()
+    access_rows = original_rows(**form.cleaned_data) if valid else []
+    measured = [row["traffic"] for row in access_rows if row["traffic"] is not None]
+    now = timezone.now()
+    return render(request, "dashboard/index.html", {"form": form, "access_rows": access_rows, "measured": bool(measured), "upload": sum(row["upload"] for row in measured), "download": sum(row["download"] for row in measured), "original_collector_running": collector_running(now, source=SOURCE_ORIGINAL), "journal_running": journal_running(now), "gate_status": original_gate_status()})
 
 
 @login_required
