@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import datetime, timedelta, timezone
+import hashlib
 import json
 from pathlib import Path
 import socket
@@ -110,6 +111,9 @@ class GateWatchTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "traffic.sqlite3"
             status = Path(directory) / "status.json"
+            original_config = Path(directory) / "original.json"
+            original_config.write_text("original")
+            original_hash = hashlib.sha256(original_config.read_bytes()).hexdigest()
             with sqlite3.connect(database) as db:
                 db.execute("CREATE TABLE dashboard_collectorstatus (source text, heartbeat text)")
                 db.execute("INSERT INTO dashboard_collectorstatus VALUES (?, ?)", ("original", datetime.now(timezone.utc).isoformat()))
@@ -123,8 +127,8 @@ class GateWatchTests(unittest.IsolatedAsyncioTestCase):
             second = await asyncio.start_server(handler.handle, "127.0.0.1", 0)
             ports = (first.sockets[0].getsockname()[1], second.sockets[0].getsockname()[1])
             refresh, clear = AsyncMock(), AsyncMock()
-            with patch.object(gate, "HEALTH_TARGET_PORT", health_port), patch.object(gate, "HEALTH_V4_PORT", ports[0]), patch.object(gate, "HEALTH_V6_PORT", ports[1]), patch.object(gate, "HEALTH_INTERVAL_SECONDS", .05), patch.object(gate, "firewall_ready", AsyncMock(return_value=True)), patch.object(gate, "refresh_gate", refresh), patch.object(gate, "clear_gate", clear):
-                watcher = asyncio.create_task(gate.watch(database, True, status, "a" * 64))
+            with patch.object(gate, "ORIGINAL_CONFIG", original_config), patch.object(gate, "HEALTH_TARGET_PORT", health_port), patch.object(gate, "HEALTH_V4_PORT", ports[0]), patch.object(gate, "HEALTH_V6_PORT", ports[1]), patch.object(gate, "HEALTH_INTERVAL_SECONDS", .05), patch.object(gate, "firewall_ready", AsyncMock(return_value=True)), patch.object(gate, "refresh_gate", refresh), patch.object(gate, "clear_gate", clear):
+                watcher = asyncio.create_task(gate.watch(database, True, status, "a" * 64, original_hash))
                 try:
                     for _ in range(100):
                         if status.exists() and json.loads(status.read_text())["state"] == "active":
@@ -132,6 +136,18 @@ class GateWatchTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.sleep(.02)
                     self.assertTrue(refresh.called)
                     self.assertEqual(sum(counters.values.values()), 0)
+                    original_config.write_text("changed")
+                    for _ in range(100):
+                        if json.loads(status.read_text())["state"] == "fallback":
+                            break
+                        await asyncio.sleep(.02)
+                    self.assertEqual(json.loads(status.read_text())["state"], "fallback")
+                    original_config.write_text("original")
+                    for _ in range(100):
+                        if json.loads(status.read_text())["state"] == "active":
+                            break
+                        await asyncio.sleep(.02)
+                    self.assertEqual(json.loads(status.read_text())["state"], "active")
                     with sqlite3.connect(database) as db:
                         db.execute("UPDATE dashboard_collectorstatus SET heartbeat = ?", ((datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),))
                     for _ in range(100):

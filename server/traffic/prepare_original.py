@@ -2,6 +2,7 @@
 
 import argparse
 import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -96,6 +97,23 @@ def prepare(source, state_dir, uid, gid):
         for path in created:
             path.unlink(missing_ok=True)
         raise
+
+
+def verified_source_hash(source, state_dir):
+    """Verify the shadow configurations still match the original node.
+
+    Args:
+        source: Path to the existing Xray configuration.
+        state_dir: Private directory containing the prepared shadow files.
+
+    Returns:
+        SHA-256 of the verified original configuration bytes.
+    """
+    contents = source.read_bytes()
+    server, client = build_configs(json.loads(contents))
+    if json.loads((state_dir / "original-server.json").read_text()) != server or json.loads((state_dir / "original-client.json").read_text()) != client:
+        raise ValueError("The original Xray configuration no longer matches the shadow")
+    return hashlib.sha256(contents).hexdigest()
 
 
 def main():

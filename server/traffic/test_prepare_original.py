@@ -1,10 +1,13 @@
 """Check that production shadow configuration never mutates the input."""
 
 import copy
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
-from prepare_original import COLLECTOR_PORT, HEALTH_V4_PORT, HEALTH_V6_PORT, MONITORED_PORT, build_configs
+from prepare_original import COLLECTOR_PORT, HEALTH_V4_PORT, HEALTH_V6_PORT, MONITORED_PORT, build_configs, verified_source_hash
 
 
 class PrepareOriginalTests(unittest.TestCase):
@@ -34,3 +37,19 @@ class PrepareOriginalTests(unittest.TestCase):
         self.original["inbounds"][0]["port"] = 444
         with self.assertRaises(ValueError):
             build_configs(self.original)
+
+    @patch("prepare_original.subprocess.check_output", return_value="Password (PublicKey): synthetic-public\n")
+    def test_reject_changed_original_config(self, _derive):
+        """Do not activate a shadow using stale original-node credentials."""
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            source = state / "source.json"
+            source.write_text(json.dumps(self.original))
+            server, client = build_configs(self.original)
+            (state / "original-server.json").write_text(json.dumps(server))
+            (state / "original-client.json").write_text(json.dumps(client))
+            self.assertEqual(len(verified_source_hash(source, state)), 64)
+            self.original["inbounds"][0]["settings"]["clients"][0]["id"] = "changed-client"
+            source.write_text(json.dumps(self.original))
+            with self.assertRaises(ValueError):
+                verified_source_hash(source, state)

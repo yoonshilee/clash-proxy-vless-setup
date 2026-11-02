@@ -27,6 +27,7 @@ HEALTH_INTERVAL_SECONDS = 2
 HEALTH_TIMEOUT_SECONDS = 3
 HEARTBEAT_SECONDS = 12
 STATUS_PATH = Path("/run/clash-traffic-gate/status.json")
+ORIGINAL_CONFIG = Path("/usr/local/etc/xray/config.json")
 
 
 async def run_command(command, data=None):
@@ -275,7 +276,7 @@ async def echo(reader, writer):
             await writer.wait_closed()
 
 
-async def watch(database, activate, status_path, firewall_hash=None):
+async def watch(database, activate, status_path, firewall_hash=None, original_hash=None):
     """Monitor both shadow paths and maintain the optional redirect.
 
     Args:
@@ -283,6 +284,7 @@ async def watch(database, activate, status_path, firewall_hash=None):
         activate: Whether to redirect new original-node connections.
         status_path: Status file path.
         firewall_hash: Expected original UFW policy fingerprint.
+        original_hash: Fingerprint of the verified original Xray configuration.
     """
     server = await asyncio.start_server(echo, "127.0.0.1", HEALTH_TARGET_PORT)
     stop = asyncio.Event()
@@ -296,6 +298,8 @@ async def watch(database, activate, status_path, firewall_hash=None):
             try:
                 if not collector_healthy(database):
                     raise OSError("Collector heartbeat stale")
+                if activate and original_hash and hashlib.sha256(ORIGINAL_CONFIG.read_bytes()).hexdigest() != original_hash:
+                    raise OSError("Original Xray configuration changed")
                 if activate and not await firewall_ready(firewall_hash):
                     raise OSError("Firewall gate is unavailable")
                 if not probes:
@@ -342,10 +346,13 @@ def main():
     parser.add_argument("--status", type=Path, default=STATUS_PATH)
     parser.add_argument("--activate", action="store_true")
     parser.add_argument("--firewall-hash")
+    parser.add_argument("--original-hash")
     args = parser.parse_args()
     if args.activate and not re.fullmatch(r"[0-9a-f]{64}", args.firewall_hash or ""):
         parser.error("--activate requires the verified firewall fingerprint")
-    asyncio.run(watch(args.database, args.activate, args.status, args.firewall_hash))
+    if args.activate and not re.fullmatch(r"[0-9a-f]{64}", args.original_hash or ""):
+        parser.error("--activate requires the verified Xray configuration fingerprint")
+    asyncio.run(watch(args.database, args.activate, args.status, args.firewall_hash, args.original_hash))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+[Unit]
+Description=Start original-node traffic monitoring
+Requires=ufw.service
+After=network-online.target ufw.service xray.service caddy.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RuntimeDirectory=clash-traffic-autostart
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+ExecStart=/bin/bash /opt/clash-traffic-preview/app/start-at-boot.sh
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target

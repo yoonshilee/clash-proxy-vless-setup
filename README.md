@@ -9,7 +9,7 @@ This repository has two separate sides:
 - VPS side: installs and configures Xray, Caddy, firewall rules, and the subscription endpoint.
 - Personal computer side: imports the generated subscription URL into Clash Verge, Mihomo, or another Clash-compatible client.
 
-An isolated dashboard and email report preview is available under [`server/traffic/`](server/traffic/README.md). It shows access domains from the existing node; per-domain bytes for the existing node are not yet available.
+The dashboard and email report preview under [`server/traffic/`](server/traffic/README.md) can show existing-node domains and measured traffic when original-node collection is enabled.
 
 Do not run VPS installation scripts on your personal computer.
 
