@@ -1,0 +1,28 @@
+[Unit]
+Description=HTTPS traffic dashboard backend
+Requires=clash-traffic-web.socket
+After=clash-traffic-web.socket
+
+[Service]
+User=clash-traffic-web
+Group=clash-traffic-data
+WorkingDirectory=/opt/clash-traffic/app
+EnvironmentFile=/etc/clash-traffic/environment
+Environment=DJANGO_SETTINGS_MODULE=traffic.secure_settings
+Environment=TRAFFIC_DATA_DIR=/var/lib/clash-traffic
+ExecStart=/opt/clash-traffic/venv/bin/gunicorn traffic.wsgi:application --workers 1 --threads 2 --log-level warning --no-control-socket
+UMask=0007
+MemoryHigh=128M
+MemoryMax=192M
+CPUQuota=25%
+TasksMax=128
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/clash-traffic
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

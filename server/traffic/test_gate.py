@@ -51,6 +51,22 @@ class GatePolicyTests(unittest.TestCase):
         document["nftables"][0]["rule"]["expr"][1]["match"]["right"] += 1
         self.assertFalse(gate.gate_rule_present(document))
 
+    def test_compatible_ufw_rule_is_recognized_without_hiding_other_rules(self):
+        """Recognize the UFW-compatible rule while preserving other policy."""
+        rule = {"family": "ip", "table": "filter", "chain": "ufw-user-input", "expr": [
+            {"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": gate.MONITORED_PORT}},
+            {"xt": {"type": "match", "name": "conntrack"}},
+            {"xt": {"type": "match", "name": "comment"}},
+            {"counter": {"packets": 1, "bytes": 2}},
+            {"accept": None},
+        ]}
+        self.assertTrue(gate.compatible_gate_rule(rule))
+        with patch.object(gate, "GATE_PROTECT_DIRECT", True):
+            baseline = gate.firewall_fingerprint({"nftables": []})
+            self.assertEqual(gate.firewall_fingerprint({"nftables": [{"rule": rule}]}), baseline)
+            rule["expr"][0]["match"]["right"] += 1
+            self.assertNotEqual(gate.firewall_fingerprint({"nftables": [{"rule": rule}]}), baseline)
+
     def test_fingerprint_ignores_counters_but_detects_policy_change(self):
         """Ignore packet counts while detecting changed filter rules."""
         rule = {"rule": {"family": "ip", "table": "filter", "chain": "INPUT", "handle": 2, "expr": [{"counter": {"packets": 1, "bytes": 40}}, {"accept": None}]}}
@@ -83,6 +99,23 @@ class GatePolicyTests(unittest.TestCase):
         self.assertTrue(gate.gate_structure_valid(document))
         document["nftables"].append(document["nftables"][-1])
         self.assertFalse(gate.gate_structure_valid(document))
+
+    def test_protected_gate_rejects_missing_direct_port_drop(self):
+        """Require the early input rule that blocks direct shadow access."""
+        table = gate.GATE_TABLE
+        document = {"nftables": [
+            {"table": {"family": "inet", "name": table}},
+            {"set": {"family": "inet", "table": table, "name": gate.GATE_SET, "type": "inet_service", "flags": ["timeout"], "timeout": gate.GATE_TTL_SECONDS}},
+            {"chain": {"family": "inet", "table": table, "name": "prerouting", "type": "nat", "hook": "prerouting", "prio": -100, "policy": "accept"}},
+            {"chain": {"family": "inet", "table": table, "name": "protect-input", "type": "filter", "hook": "input", "prio": -10, "policy": "accept"}},
+            {"rule": {"family": "inet", "table": table, "chain": "prerouting", "expr": [{"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": f"@{gate.GATE_SET}"}}, {"redirect": {"port": gate.MONITORED_PORT}}]}},
+            {"rule": {"family": "inet", "table": table, "chain": "protect-input", "expr": [{"match": {"op": "==", "left": {"meta": {"key": "iifname"}}, "right": "lo"}}, {"accept": None}]}},
+            {"rule": {"family": "inet", "table": table, "chain": "protect-input", "expr": [{"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": gate.MONITORED_PORT}}, {"match": {"op": "!=", "left": {"ct": {"key": "proto-dst", "dir": "original"}}, "right": gate.ORIGINAL_PORT}}, {"drop": None}]}},
+        ]}
+        with patch.object(gate, "GATE_PROTECT_DIRECT", True):
+            self.assertTrue(gate.gate_structure_valid(document))
+            document["nftables"].pop()
+            self.assertFalse(gate.gate_structure_valid(document))
 
     def test_stale_heartbeat_is_unhealthy(self):
         """Refuse activation when database persistence stops."""

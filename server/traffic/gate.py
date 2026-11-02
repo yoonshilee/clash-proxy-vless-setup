@@ -23,11 +23,36 @@ GATE_TABLE = "clash_traffic_original"
 GATE_SET = "active_ports"
 GATE_COMMENT = "clash-traffic-original-v1"
 GATE_TTL_SECONDS = 12
+GATE_PROTECT_DIRECT = os.environ.get("TRAFFIC_GATE_PROTECT_DIRECT") == "1"
 HEALTH_INTERVAL_SECONDS = 2
 HEALTH_TIMEOUT_SECONDS = 3
 HEARTBEAT_SECONDS = 12
 STATUS_PATH = Path("/run/clash-traffic-gate/status.json")
 ORIGINAL_CONFIG = Path("/usr/local/etc/xray/config.json")
+
+
+def compatible_gate_rule(rule):
+    """Identify the iptables-compatible gate expression in a UFW chain.
+
+    Args:
+        rule: One decoded nftables rule.
+    """
+    expected_port = {"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": MONITORED_PORT}}
+    expression = rule.get("expr", [])
+    return (rule.get("table") == "filter" and (rule.get("family"), rule.get("chain")) in (("ip", "ufw-user-input"), ("ip6", "ufw6-user-input"))
+            and len(expression) == 5 and expression[0] == expected_port
+            and expression[1] == {"xt": {"type": "match", "name": "conntrack"}}
+            and expression[2] == {"xt": {"type": "match", "name": "comment"}}
+            and "counter" in expression[3] and expression[4] == {"accept": None})
+
+
+def compatible_gate_arguments(chain):
+    """Return the exact iptables rule for an original-port redirect.
+
+    Args:
+        chain: UFW input chain.
+    """
+    return [chain, "-p", "tcp", "--dport", str(MONITORED_PORT), "-m", "conntrack", "--ctorigdstport", str(ORIGINAL_PORT), "-m", "comment", "--comment", GATE_COMMENT, "-j", "ACCEPT"]
 
 
 async def run_command(command, data=None):
@@ -80,6 +105,8 @@ def firewall_fingerprint(document):
                 continue
             if kind == "rule" and obj.get("comment") == GATE_COMMENT and obj.get("table") == "filter" and (obj.get("family"), obj.get("chain")) in (("ip", "ufw-user-input"), ("ip6", "ufw6-user-input")):
                 continue
+            if kind == "rule" and GATE_PROTECT_DIRECT and compatible_gate_rule(obj):
+                continue
             policy.append({kind: scrub(obj)})
     payload = json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(payload).hexdigest()
@@ -97,9 +124,24 @@ def gate_structure_valid(document):
             obj = item.get(kind)
             if isinstance(obj, dict) and obj.get("family") == "inet" and (obj.get("table") == GATE_TABLE or (kind == "table" and obj.get("name") == GATE_TABLE)):
                 objects[kind].append(obj)
-    if any(len(items) != 1 for items in objects.values()):
+    expected_counts = {"table": 1, "set": 1, "chain": 2 if GATE_PROTECT_DIRECT else 1, "rule": 3 if GATE_PROTECT_DIRECT else 1}
+    if any(len(items) != expected_counts[kind] for kind, items in objects.items()):
         return False
-    table, gate_set, chain, rule = (objects[kind][0] for kind in ("table", "set", "chain", "rule"))
+    table, gate_set = objects["table"][0], objects["set"][0]
+    chains = {item.get("name"): item for item in objects["chain"]}
+    chain = chains.get("prerouting", {})
+    redirect_rules = [item for item in objects["rule"] if item.get("chain") == "prerouting"]
+    if len(redirect_rules) != 1:
+        return False
+    rule = redirect_rules[0]
+    if GATE_PROTECT_DIRECT:
+        protection = chains.get("protect-input", {})
+        protected_rules = [item.get("expr") for item in objects["rule"] if item.get("chain") == "protect-input"]
+        loopback = [{"match": {"op": "==", "left": {"meta": {"key": "iifname"}}, "right": "lo"}}, {"accept": None}]
+        destination = {"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": MONITORED_PORT}}
+        original = {"match": {"op": "!=", "left": {"ct": {"key": "proto-dst", "dir": "original"}}, "right": ORIGINAL_PORT}}
+        if protection.get("type") != "filter" or protection.get("hook") != "input" or protection.get("prio") != -10 or protection.get("policy") != "accept" or protected_rules != [loopback, [destination, original, {"drop": None}]]:
+            return False
     expected_match = {"match": {"op": "==", "left": {"payload": {"protocol": "tcp", "field": "dport"}}, "right": f"@{GATE_SET}"}}
     elements = gate_set.get("elem", [])
     if not isinstance(elements, list) or len(elements) > 1:
@@ -160,7 +202,18 @@ async def firewall_ready(expected_fingerprint):
         root = chain(family, "INPUT")
         before = chain(family, f"{prefix}-before-input")
         user = chain(family, f"{prefix}-user-input")
-        if f"{prefix}-before-input" not in chain_jumps(root) or f"{prefix}-user-input" not in chain_jumps(before) or not gate_rule_present(user):
+        if f"{prefix}-before-input" not in chain_jumps(root) or f"{prefix}-user-input" not in chain_jumps(before):
+            return False
+        if GATE_PROTECT_DIRECT:
+            candidates = [item["rule"] for item in user["nftables"] if compatible_gate_rule(item["rule"])]
+            if len(candidates) != 1:
+                return False
+            command = "iptables" if family == "ip" else "ip6tables"
+            try:
+                await run_command([command, "-C", *compatible_gate_arguments(f"{prefix}-user-input")])
+            except (OSError, asyncio.TimeoutError):
+                return False
+        elif not gate_rule_present(user):
             return False
     return True
 

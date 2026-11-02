@@ -1,22 +1,44 @@
 """Prepare an isolated copy of the existing Xray inbound for validation."""
 
 import argparse
+import base64
+import binascii
 import copy
 import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import tempfile
 
-ORIGINAL_PORT = 443
+ORIGINAL_PORT = int(os.environ.get("TRAFFIC_ORIGINAL_PORT", "443"))
 MONITORED_PORT = int(os.environ.get("TRAFFIC_ORIGINAL_SHADOW_PORT", "32854"))
 COLLECTOR_PORT = int(os.environ.get("TRAFFIC_ORIGINAL_COLLECTOR_PORT", "32855"))
 HEALTH_V4_PORT = int(os.environ.get("TRAFFIC_ORIGINAL_HEALTH_V4_PORT", "32856"))
 HEALTH_V6_PORT = int(os.environ.get("TRAFFIC_ORIGINAL_HEALTH_V6_PORT", "32857"))
 HEALTH_TARGET_PORT = int(os.environ.get("TRAFFIC_ORIGINAL_HEALTH_TARGET_PORT", "32858"))
 XRAY = os.environ.get("TRAFFIC_XRAY", "/usr/local/bin/xray")
+
+
+def reality_public_key(private_key):
+    """Derive the REALITY public key without exposing the private key in argv.
+
+    Args:
+        private_key: URL-safe base64 encoded X25519 private key.
+
+    Returns:
+        The matching URL-safe base64 encoded public key without padding.
+    """
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+
+    try:
+        raw = base64.b64decode(private_key + "=" * (-len(private_key) % 4), altchars=b"-_", validate=True)
+        key = X25519PrivateKey.from_private_bytes(raw)
+    except (ValueError, TypeError, binascii.Error) as exc:
+        raise ValueError("The REALITY private key is invalid") from exc
+    public = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    return base64.urlsafe_b64encode(public).rstrip(b"=").decode("ascii")
 
 
 def build_configs(original):
@@ -48,11 +70,7 @@ def build_configs(original):
     if inbound.get("listen") not in (None, "0.0.0.0", "::"):
         raise ValueError("The existing listener address is not supported")
 
-    output = subprocess.check_output([XRAY, "x25519", "-i", reality["privateKey"]], text=True)
-    match = re.search(r"^Password \(PublicKey\):\s*(\S+)", output, re.MULTILINE)
-    if not match:
-        raise ValueError("Xray did not return a REALITY public key")
-    public = match.group(1)
+    public = reality_public_key(reality["privateKey"])
     server = copy.deepcopy(original)
     server["inbounds"][0]["port"] = MONITORED_PORT
     server["outbounds"][0] = {"protocol": "socks", "tag": outbounds[0].get("tag", "direct"), "settings": {"address": "127.0.0.1", "port": COLLECTOR_PORT}}

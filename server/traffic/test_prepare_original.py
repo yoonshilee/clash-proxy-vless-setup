@@ -1,13 +1,17 @@
 """Check that production shadow configuration never mutates the input."""
 
 import copy
+import base64
 import json
+import os
 from pathlib import Path
+import re
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from prepare_original import COLLECTOR_PORT, HEALTH_V4_PORT, HEALTH_V6_PORT, MONITORED_PORT, build_configs, verified_source_hash
+from prepare_original import COLLECTOR_PORT, HEALTH_V4_PORT, HEALTH_V6_PORT, MONITORED_PORT, build_configs, reality_public_key, verified_source_hash
 
 
 class PrepareOriginalTests(unittest.TestCase):
@@ -20,7 +24,7 @@ class PrepareOriginalTests(unittest.TestCase):
             "outbounds": [{"protocol": "freedom", "tag": "direct"}, {"protocol": "blackhole", "tag": "block"}],
         }
 
-    @patch("prepare_original.subprocess.check_output", return_value="Password (PublicKey): synthetic-public\n")
+    @patch("prepare_original.reality_public_key", return_value="synthetic-public")
     def test_shadow_preserves_original_and_uses_local_collector(self, _derive):
         """Create an independent listener and dual-stack health client."""
         before = copy.deepcopy(self.original)
@@ -38,7 +42,7 @@ class PrepareOriginalTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_configs(self.original)
 
-    @patch("prepare_original.subprocess.check_output", return_value="Password (PublicKey): synthetic-public\n")
+    @patch("prepare_original.reality_public_key", return_value="synthetic-public")
     def test_reject_changed_original_config(self, _derive):
         """Do not activate a shadow using stale original-node credentials."""
         with tempfile.TemporaryDirectory() as directory:
@@ -53,3 +57,16 @@ class PrepareOriginalTests(unittest.TestCase):
             source.write_text(json.dumps(self.original))
             with self.assertRaises(ValueError):
                 verified_source_hash(source, state)
+
+    def test_reject_invalid_reality_private_key(self):
+        """Reject malformed private keys without spawning a subprocess."""
+        with self.assertRaises(ValueError):
+            reality_public_key("not-a-valid-key")
+
+    @unittest.skipUnless(os.environ.get("XRAY_TEST_BINARY"), "Set XRAY_TEST_BINARY to compare Xray output")
+    def test_public_key_matches_xray(self):
+        """Derive the same public key as Xray using synthetic key material."""
+        private = base64.urlsafe_b64encode(bytes(range(32))).rstrip(b"=").decode()
+        output = subprocess.check_output([os.environ["XRAY_TEST_BINARY"], "x25519", "-i", private], text=True)
+        expected = re.search(r"^Password \(PublicKey\):\s*(\S+)", output, re.MULTILINE).group(1)
+        self.assertEqual(reality_public_key(private), expected)

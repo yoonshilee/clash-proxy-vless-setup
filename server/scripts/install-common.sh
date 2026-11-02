@@ -884,6 +884,13 @@ print_summary() {
         echo "    ${ipv6_provider_url}"
     fi
     echo ""
+    if [[ "${OS_FAMILY}" != "centos" ]]; then
+        echo "  Optional traffic dashboard (run separately on the VPS):"
+        echo "    sudo bash ${REPO_ROOT}/server/traffic/install.sh --check"
+        echo "    sudo bash ${REPO_ROOT}/server/traffic/install.sh --install"
+        echo "    Requirements and access details: ${REPO_ROOT}/server/traffic/README.md"
+        echo ""
+    fi
 }
 
 main_install() {

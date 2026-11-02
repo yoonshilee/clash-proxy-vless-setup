@@ -4,6 +4,7 @@ import logging
 import time
 from datetime import timedelta
 
+from django.conf import settings as django_settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -22,7 +23,8 @@ def run_once(now):
     """
     TrafficMinute.objects.filter(minute__lt=now - timedelta(days=RETENTION_DAYS)).delete()
     AccessMinute.objects.filter(minute__lt=now - timedelta(days=RETENTION_DAYS)).delete()
-    ingest()
+    if not getattr(django_settings, "TRAFFIC_EXTERNAL_JOURNAL", False):
+        ingest()
     settings, _ = ReportSettings.objects.get_or_create(pk=1)
     period = scheduled_period(settings, now)
     if not period:

@@ -1,53 +1,69 @@
-# Domain Traffic Preview
+# Domain Traffic Dashboard
 
-This preview reads access records from the existing Xray service and shows its destination domains and connection counts. It also runs a separate loopback-only Xray node, a SOCKS traffic collector, a dashboard, and an email scheduler. The existing Xray service and subscription remain separate from the test node.
+The dashboard reports the domains and application bytes observed for new connections through the existing Xray node. It stores minute-level data for 90 days and can send a selected time range or a daily or weekly report through one configured SMTP account. Times are UTC by default.
 
-The original Xray access log provides destination records but does not provide byte counts. The first journal read imports at most 1,000 entries from the previous 15 minutes; later reads continue from the saved journal cursor. The reader stores destination domains and connection counts, not client addresses.
+## Requirements
 
-When original-node collection is active, new connections pass through a separate Xray listener and collector using the existing node credentials. Existing connections continue on the original listener and cannot be measured retroactively. A health watchdog returns new connections to the original listener when collection is unhealthy; connections already using the collector can be interrupted if it fails. The redirect expires within 12 seconds if the watchdog stops. Measured bytes exclude protocol overhead, and periods when collection is inactive can be incomplete.
+Install the proxy and subscription first. The dashboard installer currently supports a Debian-family VPS with systemd, an active UFW firewall with IPv4 and IPv6 enabled, Python 3.11 or newer with `venv`, Caddy, and a public IPv4 address recorded in `server/config/setup.conf`. The existing Xray configuration and UFW rules must pass the installer's checks. The dashboard does not support firewalld. Ports 9443 and 32854–32858 must be available. DNS for the generated `traffic.<public IPv4>.sslip.io` hostname must resolve to the VPS, and Caddy must be able to obtain and renew a public certificate. Allow TCP ports 80 and 9443 through any provider firewall as well as UFW.
 
-The separate test-node collector counts successfully forwarded application bytes by domain and UTC minute. IP-only destinations are shown as `Unknown`; protocol overhead is not included. Connections carrying requests for more than one domain are attributed to the destination supplied to the proxy. The totals are not a VPS billing measurement. Data is retained for 90 days. Traffic while a reader is stopped, journal entries are rotated away, or pending counters are lost during an abrupt termination can create gaps.
+Run these commands on the VPS from the repository directory:
+
+```sh
+sudo bash server/traffic/install.sh --check
+sudo bash server/traffic/install.sh --install
+```
+
+The check validates the server and downloads the required Python packages into a temporary directory. It does not change the proxy, firewall, Caddy configuration, or services. The install stops if it detects an existing preview or an unsupported configuration; it does not automatically migrate preview data. If installation fails, it attempts to disable the new services and remove its dashboard site and firewall opening. When traffic was already redirected, it leaves the collector running so those connections can finish. The new files are retained for inspection and the installer refuses to overwrite them on a retry; check the service and firewall state before further changes.
+
+## Open and secure the dashboard
+
+The installer prints the HTTPS address and the administrator username, `admin`. It creates a random initial password in `/etc/clash-traffic/admin-login.txt`, readable by root only. Retrieve it on the VPS:
+
+```sh
+sudo cat /etc/clash-traffic/admin-login.txt
+```
+
+Open the printed HTTPS URL on your own computer and sign in. Save the password in a password manager and remove the credentials file once it has been saved. Do not share the password, the file contents, or installer output that contains subscription credentials.
+
+To set a new administrator password on the VPS, run:
+
+```sh
+sudo env DJANGO_SETTINGS_MODULE=traffic.secure_settings TRAFFIC_DATA_DIR=/var/lib/clash-traffic \
+  TRAFFIC_PUBLIC_HOST="$(sudo sed -n 's/^TRAFFIC_PUBLIC_HOST=//p' /etc/clash-traffic/environment)" \
+  /opt/clash-traffic/venv/bin/python /opt/clash-traffic/app/manage.py changepassword admin
+sudo rm -f /etc/clash-traffic/admin-login.txt
+```
+
+The dashboard is served over HTTPS by Caddy through a private local socket. Its application account cannot read the Xray private configuration. Login failures are limited by client IP; after five failures, the address is temporarily blocked for 15 minutes. The application and collector share the traffic database. SMTP credentials are stored in that database and must be protected by restricting server access and backups.
+
+## Effects on the existing proxy
+
+Installation does not restart Xray or replace its configuration, and Caddy is reloaded to add the dashboard site. The installer opens TCP 9443 in UFW and installs a firewall gate: healthy new connections are sent to a separate collector using the existing node credentials. Connections already established on the original Xray listener continue there. If collection becomes unhealthy, the watchdog returns new connections to the original listener; connections already using the collector can be interrupted. The redirect expires within 12 seconds if the watchdog stops. Existing connections cannot be measured retroactively, and collection failures or abrupt termination can leave gaps.
+
+The watchdog also falls back when the original Xray configuration or the verified firewall policy changes. Review the collector and watchdog status after changing either; a changed configuration is not automatically copied into the collector.
+
+The collector counts successfully forwarded application bytes, excluding protocol overhead. IP-only destinations appear as `Unknown`; traffic on a connection is attributed to the destination supplied to the proxy. The values do not represent VPS billing totals. The original Xray journal supplies domain access counts without byte counts.
+
+## Email and checks
+
+Configure one recipient and SMTP credentials in the dashboard. STARTTLS and implicit TLS are supported. Scheduled reports are retried after a failure; a message accepted by the SMTP server before a process interruption can be sent twice.
+
+Check the services on the VPS:
+
+```sh
+sudo systemctl status clash-traffic-web.service clash-traffic-capture.service clash-traffic-gate.service
+sudo journalctl -u clash-traffic-capture.service -u clash-traffic-gate.service -n 100
+```
+
+The date-time picker is served locally. No external CDN is required.
 
 ## Local verification
 
-Create a Python 3.12 virtual environment, install `requirements.txt`, and set `XRAY_TEST_BINARY` to a local Xray 26.3.27 binary. From this directory, run:
+In a Python 3.12 virtual environment, install `requirements.txt`. From this directory, run:
 
 ```sh
-python -m unittest -v test_collector test_xray_integration test_preview
+python -m unittest -v test_collector test_deployment test_gate test_prepare_original
 TRAFFIC_DATA_DIR=/tmp/traffic-test TRAFFIC_SECRET_KEY=local-test-key python manage.py test dashboard
 ```
 
-The tests create temporary configuration and credentials. They do not require access to the VPS.
-
-## Isolated VPS preview
-
-Run the preview only on a Linux VPS with systemd, an existing Xray binary at `/usr/local/bin/xray`, and Python 3.12. Install the Python requirements into a dedicated directory readable by the preview service; do not install them into the system Python environment. Copy this directory to a dedicated, root-owned application directory, then start the preview with `TRAFFIC_PREVIEW_PYTHONPATH` set to the dependency directory:
-
-```sh
-sudo TRAFFIC_PREVIEW_PYTHONPATH=/opt/clash-traffic-preview/deps bash /opt/clash-traffic-preview/app/start-preview.sh
-sudo systemctl status clash-traffic-preview.service
-```
-
-The transient service uses a private systemd user with read access to the systemd journal, a 256 MiB memory limit, a 25% CPU quota, and separate persistent data in `/var/lib/clash-traffic-preview`. It binds only to loopback and does not open firewall ports. When the `clash-traffic-autostart.service` systemd unit is installed and enabled, it verifies the UFW policy and starts the dashboard and original-node collector after boot. If the firewall check fails, the collector is not activated and the original listener remains available.
-
-Set `TRAFFIC_VPS_SSH_TARGET` to the SSH destination already used to access the VPS. Open an SSH tunnel from the personal computer using the same identity:
-
-```sh
-ssh -N -L 32850:127.0.0.1:32850 -L 32853:127.0.0.1:32853 "$TRAFFIC_VPS_SSH_TARGET"
-```
-
-Open `http://127.0.0.1:32850/`. The initial dashboard login is stored in the root-readable `/var/lib/clash-traffic-preview/preview-login.txt` on the VPS. Send a test request from a second terminal:
-
-```sh
-curl --socks5-hostname 127.0.0.1:32853 https://example.com/
-```
-
-The SSH tunnel forwards TCP only. The collector's UDP path is exercised by the local automated tests; UDP traffic from a personal computer is not forwarded by this preview tunnel. To stop the preview, run `sudo systemctl stop clash-traffic-preview.service`. This does not delete its data.
-
-## Email
-
-The dashboard accepts one recipient and STARTTLS or implicit TLS SMTP settings. The password is stored in the preview's private SQLite database. Set a daily or weekly schedule and its IANA time zone, or send a selected UTC time range from the overview. Reports contain original-node access counts and measured byte totals, or label byte totals unavailable when no measurements exist. Scheduled reports are retried after failures; an interruption after the SMTP server accepts a message but before the sent marker is saved can produce a duplicate.
-
-The overview uses the bundled Flatpickr 4.6.13 date-time picker. Dates and times are entered in UTC, with one-minute precision; the library is served locally and does not require a third-party CDN.
-
-The preview is not a public-facing deployment. Do not expose its HTTP or SOCKS listeners to the internet.
+Set `XRAY_TEST_BINARY` to a local Xray binary when running `test_xray_integration`. Tests use temporary credentials and do not require access to a VPS.

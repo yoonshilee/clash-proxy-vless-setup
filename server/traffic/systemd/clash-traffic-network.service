@@ -1,0 +1,17 @@
+[Unit]
+Description=Start the monitored proxy path after firewall verification
+Requires=clash-traffic-firewall.service clash-traffic-capture.service
+After=multi-user.target network-online.target ufw.service xray.service clash-traffic-firewall.service clash-traffic-capture.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/clash-traffic/environment
+ExecStart=/bin/bash /opt/clash-traffic/app/activate-monitoring.sh
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

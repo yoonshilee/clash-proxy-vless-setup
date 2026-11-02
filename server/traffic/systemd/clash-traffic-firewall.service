@@ -1,0 +1,21 @@
+[Unit]
+Description=Prepare the inactive and protected traffic monitoring gate
+Requires=ufw.service
+After=multi-user.target network-online.target ufw.service xray.service docker.service containerd.service cloud-final.service
+Wants=network-online.target xray.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/clash-traffic/environment
+RuntimeDirectory=clash-traffic-control
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+ExecStart=/bin/bash /opt/clash-traffic/app/prepare-firewall.sh
+ExecStartPost=/usr/bin/systemctl --no-block start clash-traffic-network.service
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

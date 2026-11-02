@@ -3,8 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNIT="clash-traffic-gate"
-DATABASE="/var/lib/private/clash-traffic-preview/traffic.sqlite3"
+DATABASE="${TRAFFIC_DATABASE_PATH:-/var/lib/private/clash-traffic-preview/traffic.sqlite3}"
 HASH_FILE="${TRAFFIC_GATE_HASH_PATH:-/var/lib/private/clash-traffic-preview/gate-firewall-hash}"
+CONFIG_DIR="${TRAFFIC_ORIGINAL_CONFIG_DIR:-/var/lib/private/clash-traffic-preview}"
+PYTHON="${TRAFFIC_PYTHON:-/usr/bin/python3}"
 MODE="${1:---shadow}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -18,7 +20,7 @@ fi
 args=(--database "$DATABASE")
 if [[ "$MODE" == --activate ]]; then
     [[ -f "$HASH_FILE" ]] || { echo "The verified firewall fingerprint is missing." >&2; exit 1; }
-    original_hash="$(cd "$SCRIPT_DIR" && /usr/bin/python3 -c 'from pathlib import Path; from prepare_original import verified_source_hash; print(verified_source_hash(Path("/usr/local/etc/xray/config.json"), Path("/var/lib/private/clash-traffic-preview")))')"
+    original_hash="$(cd "$SCRIPT_DIR" && "$PYTHON" -c 'from pathlib import Path; from prepare_original import verified_source_hash; import sys; print(verified_source_hash(Path("/usr/local/etc/xray/config.json"), Path(sys.argv[1])))' "$CONFIG_DIR")"
     args+=(--activate --firewall-hash "$(cat "$HASH_FILE")" --original-hash "$original_hash")
 elif [[ "$MODE" != --shadow ]]; then
     echo "Use --shadow or --activate." >&2
@@ -40,4 +42,6 @@ systemd-run --unit="$UNIT" \
     --property=ProtectHome=yes \
     --property=Restart=on-failure \
     --property=RestartSec=2 \
+    --setenv="TRAFFIC_ORIGINAL_PORT=${TRAFFIC_ORIGINAL_PORT:-443}" \
+    --setenv="TRAFFIC_GATE_PROTECT_DIRECT=${TRAFFIC_GATE_PROTECT_DIRECT:-0}" \
     /usr/bin/python3 "${SCRIPT_DIR}/gate.py" "${args[@]}"

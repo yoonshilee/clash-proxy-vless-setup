@@ -1,0 +1,29 @@
+[Unit]
+Description=Original-node traffic collector
+Requires=clash-traffic-firewall.service
+After=multi-user.target network-online.target xray.service clash-traffic-firewall.service
+Wants=network-online.target
+
+[Service]
+User=clash-traffic-capture
+Group=clash-traffic-data
+WorkingDirectory=/opt/clash-traffic/app
+EnvironmentFile=/etc/clash-traffic/environment
+Environment=TRAFFIC_DATA_DIR=/var/lib/clash-traffic
+Environment=TRAFFIC_ORIGINAL_CONFIG_DIR=/etc/clash-traffic/private
+ExecStart=/opt/clash-traffic/venv/bin/python /opt/clash-traffic/app/original.py
+UMask=0007
+MemoryHigh=192M
+MemoryMax=256M
+TasksMax=256
+LimitNOFILE=8192
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/clash-traffic
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

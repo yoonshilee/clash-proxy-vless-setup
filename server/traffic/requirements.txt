@@ -1,2 +1,4 @@
 Django>=5.2.18,<5.3
-gunicorn>=23,<24
+gunicorn>=25.3,<27
+django-axes>=9,<10
+cryptography>=42,<50

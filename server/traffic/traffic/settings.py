@@ -5,7 +5,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ["TRAFFIC_DATA_DIR"]).resolve()
-SECRET_KEY = os.environ["TRAFFIC_SECRET_KEY"]
+SECRET_KEY = os.environ.get("TRAFFIC_SECRET_KEY") or (DATA_DIR / "secret").read_text().strip()
 DEBUG = False
 ALLOWED_HOSTS = os.environ.get("TRAFFIC_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 INSTALLED_APPS = [

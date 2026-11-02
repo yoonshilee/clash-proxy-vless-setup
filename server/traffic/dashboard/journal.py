@@ -17,7 +17,7 @@ from .models import JournalState
 
 LOGGER = logging.getLogger(__name__)
 MAX_RECORDS = 1000
-JOURNAL_UNITS = ("xray.service", "clash-traffic-original.service")
+JOURNAL_UNITS = ("xray.service", "clash-traffic-original.service", "clash-traffic-capture.service")
 ACCESS_TARGET = re.compile(r"\baccepted\s+(?:tcp|udp):(?P<host>\[[^\]]+\]|[^\s:]+):(?P<port>\d+)(?:\s|$)")
 DOMAIN = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,251}[a-z0-9])?$")
 

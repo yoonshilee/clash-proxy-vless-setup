@@ -12,13 +12,14 @@ from prepare_original import COLLECTOR_PORT, HEALTH_TARGET_PORT, XRAY
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ["TRAFFIC_DATA_DIR"]).resolve()
+CONFIG_DIR = Path(os.environ.get("TRAFFIC_ORIGINAL_CONFIG_DIR", str(DATA_DIR))).resolve()
 
 
 def main():
     """Run the original-node collector, shadow listener, and health client."""
     database = DATA_DIR / "traffic.sqlite3"
-    server = DATA_DIR / "original-server.json"
-    client = DATA_DIR / "original-client.json"
+    server = CONFIG_DIR / "original-server.json"
+    client = CONFIG_DIR / "original-client.json"
     if not all(path.is_file() for path in (database, server, client)):
         raise RuntimeError("Original-node shadow files are missing")
     commands = [

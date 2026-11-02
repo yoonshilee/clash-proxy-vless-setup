@@ -1,0 +1,26 @@
+[Unit]
+Description=Schedule traffic reports and data retention
+After=clash-traffic-web.service
+
+[Service]
+User=clash-traffic-web
+Group=clash-traffic-data
+WorkingDirectory=/opt/clash-traffic/app
+EnvironmentFile=/etc/clash-traffic/environment
+Environment=DJANGO_SETTINGS_MODULE=traffic.secure_settings
+Environment=TRAFFIC_DATA_DIR=/var/lib/clash-traffic
+ExecStart=/opt/clash-traffic/venv/bin/python /opt/clash-traffic/app/manage.py run_traffic_scheduler
+UMask=0007
+MemoryMax=96M
+CPUQuota=15%
+TasksMax=32
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/clash-traffic
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

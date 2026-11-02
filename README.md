@@ -9,7 +9,7 @@ This repository has two separate sides:
 - VPS side: installs and configures Xray, Caddy, firewall rules, and the subscription endpoint.
 - Personal computer side: imports the generated subscription URL into Clash Verge, Mihomo, or another Clash-compatible client.
 
-The dashboard and email report preview under [`server/traffic/`](server/traffic/README.md) can show existing-node domains and measured traffic when original-node collection is enabled.
+The optional [domain traffic dashboard](server/traffic/README.md) shows measured traffic and can send email reports. It is installed separately on a supported VPS after the proxy.
 
 Do not run VPS installation scripts on your personal computer.
 
@@ -77,6 +77,8 @@ When installation finishes, the script prints the private IPv4 subscription and 
 
 - Full subscription URL for Clash Verge and other subscription clients.
 - Node provider URL ending in `-provider.yaml` for a local Mihomo config.
+
+To install the optional dashboard on a supported Debian-family VPS, follow the [dashboard installation and access instructions](server/traffic/README.md). The dashboard installer checks the existing server first and prints the HTTPS address, administrator username, and command to retrieve the initial password. It does not require rerunning the proxy installer.
 
 All URLs reuse `SUB_TOKEN`. Keep them private. The full subscription and provider files contain both IPv4 and IPv6 nodes when IPv6 publishing is enabled, so importing either URL provides both paths.
 

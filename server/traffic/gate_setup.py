@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 
-from gate import GATE_COMMENT, GATE_SET, GATE_TABLE, GATE_TTL_SECONDS, chain_jumps, firewall_fingerprint
+from gate import GATE_COMMENT, GATE_PROTECT_DIRECT, GATE_SET, GATE_TABLE, GATE_TTL_SECONDS, chain_jumps, compatible_gate_arguments, compatible_gate_rule, firewall_fingerprint
 from prepare_original import MONITORED_PORT, ORIGINAL_PORT
 
 
@@ -18,13 +18,17 @@ def ruleset():
 
 def gate_rules():
     """Return an atomic, initially inactive dual-stack gate transaction."""
+    protection = f''' chain protect-input {{ type filter hook input priority -10; policy accept; iifname "lo" accept; tcp dport {MONITORED_PORT} ct original proto-dst != {ORIGINAL_PORT} drop; }}
+''' if GATE_PROTECT_DIRECT else ""
+    legacy_rules = f'''insert rule ip filter ufw-user-input tcp dport {MONITORED_PORT} ct original proto-dst {ORIGINAL_PORT} accept comment "{GATE_COMMENT}"
+insert rule ip6 filter ufw6-user-input tcp dport {MONITORED_PORT} ct original proto-dst {ORIGINAL_PORT} accept comment "{GATE_COMMENT}"
+''' if not GATE_PROTECT_DIRECT else ""
     return f'''table inet {GATE_TABLE} {{
  set {GATE_SET} {{ type inet_service; flags timeout; timeout {GATE_TTL_SECONDS}s; }}
  chain prerouting {{ type nat hook prerouting priority dstnat; policy accept; tcp dport @{GATE_SET} redirect to :{MONITORED_PORT}; }}
+{protection}\
 }}
-insert rule ip filter ufw-user-input tcp dport {MONITORED_PORT} ct original proto-dst {ORIGINAL_PORT} accept comment "{GATE_COMMENT}"
-insert rule ip6 filter ufw6-user-input tcp dport {MONITORED_PORT} ct original proto-dst {ORIGINAL_PORT} accept comment "{GATE_COMMENT}"
-'''
+{legacy_rules}'''
 
 
 def validate_policy(document):
@@ -54,6 +58,8 @@ def validate_policy(document):
         for item in user:
             if item.get("rule", {}).get("comment") == GATE_COMMENT:
                 raise ValueError("A gate rule already exists")
+            if GATE_PROTECT_DIRECT and compatible_gate_rule(item.get("rule", {})):
+                raise ValueError("An incompatible gate rule already exists")
             expr = item.get("rule", {}).get("expr", [])
             if any(key in element for element in expr for key in ("drop", "reject", "jump", "limit")):
                 raise ValueError("The UFW user chain has unsupported restrictions")
@@ -78,11 +84,23 @@ def install(hash_path):
     transaction = gate_rules()
     subprocess.run(["nft", "--check", "-f", "-"], input=transaction, text=True, check=True, timeout=10)
     fd = os.open(hash_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    installed = []
+    table_installed = False
     try:
         with os.fdopen(fd, "w") as stream:
             stream.write(digest + "\n")
         subprocess.run(["nft", "-f", "-"], input=transaction, text=True, check=True, timeout=10)
+        table_installed = True
+        if GATE_PROTECT_DIRECT:
+            for command, chain in (("iptables", "ufw-user-input"), ("ip6tables", "ufw6-user-input")):
+                args = compatible_gate_arguments(chain)
+                subprocess.run([command, "-I", args[0], "1", *args[1:]], check=True, timeout=10)
+                installed.append((command, args))
     except BaseException:
+        for command, args in reversed(installed):
+            subprocess.run([command, "-D", *args], check=False, timeout=10)
+        if table_installed:
+            subprocess.run(["nft", "delete", "table", "inet", GATE_TABLE], check=False, timeout=10)
         hash_path.unlink(missing_ok=True)
         raise
 
