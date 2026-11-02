@@ -1,6 +1,6 @@
 """Authenticated dashboard and report views."""
 
-from datetime import timedelta
+from datetime import timedelta, timezone as datetime_timezone
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -15,9 +15,9 @@ from .reports import collector_running, journal_running, original_gate_status, o
 
 
 def default_range():
-    """Return a minute-aligned UTC range including the current minute."""
-    end = timezone.now().replace(second=0, microsecond=0) + timedelta(minutes=1)
-    return {"start": end - timedelta(days=1), "end": end}
+    """Return the UTC day containing the current time."""
+    start = timezone.now().astimezone(datetime_timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return {"start": start, "end": start + timedelta(days=1)}
 
 
 @login_required

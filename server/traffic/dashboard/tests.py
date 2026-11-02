@@ -62,6 +62,14 @@ class ReportTests(TestCase):
         """Redirect unauthenticated dashboard requests to login."""
         self.assertEqual(self.client.get(reverse("dashboard")).status_code, 302)
 
+    def test_default_range_is_the_current_utc_day(self):
+        """Default to UTC midnight boundaries, including across a year end."""
+        with patch("dashboard.views.timezone.now", return_value=datetime(2026, 12, 31, 23, 59, tzinfo=timezone.utc)):
+            self.client.force_login(self.user)
+            response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, 'value="2026-12-31 00:00"')
+        self.assertContains(response, 'value="2027-01-01 00:00"')
+
     def test_authenticated_dashboard_and_invalid_range(self):
         """Show aggregated data and reject a reversed time interval."""
         AccessMinute.objects.create(minute=self.start, domain="example.com", connections=1)
