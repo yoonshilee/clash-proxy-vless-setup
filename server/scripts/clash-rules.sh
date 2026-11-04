@@ -51,6 +51,12 @@ CLASH_NPM_DIRECT_SUFFIXES=(
     "captcha-delivery.com"
 )
 
+CLASH_HOMEBREW_DIRECT_SUFFIXES=(
+    "formulae.brew.sh"
+    "ghcr.io"
+    "pkg-containers.githubusercontent.com"
+)
+
 CLASH_GITHUB_PROXY_SUFFIXES=(
     "github.com"
     "githubusercontent.com"
@@ -460,6 +466,11 @@ emit_clash_rule_lines() {
     if [[ -n "${public_ipv6}" ]]; then
         printf '%sIP-CIDR6,%s/128,DIRECT,no-resolve\n' "${prefix}" "${public_ipv6}"
     fi
+
+    printf '%sPROCESS-NAME,Homebrew,DIRECT\n' "${prefix}"
+    for domain in "${CLASH_HOMEBREW_DIRECT_SUFFIXES[@]}"; do
+        printf '%sDOMAIN-SUFFIX,%s,DIRECT\n' "${prefix}" "${domain}"
+    done
 
     for domain in "${CLASH_GITHUB_PROXY_SUFFIXES[@]}"; do
         [[ -n "${domain}" ]] || continue

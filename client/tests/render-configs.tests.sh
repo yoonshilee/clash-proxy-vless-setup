@@ -141,14 +141,21 @@ for profile in "${subscription_file}" \
         ! grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
     [[ "$(grep -F 'DOMAIN-SUFFIX,' "${profile}" | sort | uniq -d | wc -l)" -eq 0 ]]
+    grep -Fq 'PROCESS-NAME,Homebrew,DIRECT' "${profile}"
+    for domain in formulae.brew.sh ghcr.io pkg-containers.githubusercontent.com; do
+        grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
+    done
     awk '
+        /DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,DIRECT/ { homebrew = NR }
+        /DOMAIN-SUFFIX,githubusercontent.com,PROXY/ { githubusercontent = NR }
         /DOMAIN-SUFFIX,github.com,PROXY/ { github = NR }
         /DOMAIN-SUFFIX,openai.com,PROXY/ { openai = NR }
         /GEOSITE,cn,DIRECT/ { domestic = NR }
         /DOMAIN-SUFFIX,.*,DIRECT/ { last_direct = NR }
         /GEOIP,CN,DIRECT,no-resolve/ { china_ip = NR }
         /MATCH,PROXY/ { fallback = NR }
-        END { exit !(github && openai && github < domestic && openai < domestic &&
+        END { exit !(homebrew && githubusercontent && homebrew < githubusercontent &&
+            github && openai && github < domestic && openai < domestic &&
             last_direct < domestic && domestic < china_ip && china_ip < fallback) }
     ' "${profile}"
 done

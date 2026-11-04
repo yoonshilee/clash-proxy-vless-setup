@@ -106,6 +106,8 @@ The VPS installer also writes generated examples to `client/local-config/`. That
 
 Server-managed rules explicitly route Dianping, Meituan, Amap, and their supporting domains through `DIRECT`. Other domestic services use `GEOSITE,cn,DIRECT` and `GEOIP,CN,DIRECT,no-resolve` before the final proxy fallback. Explicit GitHub and OpenAI proxy rules take precedence over these domestic fallbacks; personal prepended rules still take precedence over server defaults.
 
+Homebrew's application, formula API, GitHub container registry, and container download host use `DIRECT`. The registry and download host are shared with other applications. Homebrew downloads from other hosts follow their usual rules.
+
 ## Personal Routing Rules
 
 Personal domain rules are stored separately from the VPS subscription. Subscription updates cannot overwrite them.

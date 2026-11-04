@@ -43,6 +43,10 @@ proxy-groups:
 rules:
 # __USER_RULES__
 - IP-CIDR,__VPS_PUBLIC_IP__/32,DIRECT,no-resolve
+- PROCESS-NAME,Homebrew,DIRECT
+- DOMAIN-SUFFIX,formulae.brew.sh,DIRECT
+- DOMAIN-SUFFIX,ghcr.io,DIRECT
+- DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,DIRECT
 - DOMAIN-SUFFIX,github.com,PROXY
 - DOMAIN-SUFFIX,githubusercontent.com,PROXY
 - DOMAIN-SUFFIX,githubassets.com,PROXY

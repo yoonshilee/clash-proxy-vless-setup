@@ -55,6 +55,10 @@ proxy-groups:
   - 'vless-reality'
 rules:
 - IP-CIDR,<server-public-ip>/32,DIRECT,no-resolve
+- PROCESS-NAME,Homebrew,DIRECT
+- DOMAIN-SUFFIX,formulae.brew.sh,DIRECT
+- DOMAIN-SUFFIX,ghcr.io,DIRECT
+- DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,DIRECT
 - DOMAIN-SUFFIX,github.com,PROXY
 - DOMAIN-SUFFIX,githubusercontent.com,PROXY
 - DOMAIN-SUFFIX,githubassets.com,PROXY
