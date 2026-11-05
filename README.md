@@ -13,6 +13,16 @@ The optional [domain traffic dashboard](server/traffic/README.md) shows measured
 
 Do not run VPS installation scripts on your personal computer.
 
+## License and Commercial Use
+
+This version is source-available under the [Clash VLESS REALITY Setup Noncommercial License](LICENSE). Noncommercial use, modification, and sharing are permitted under its conditions. Commercial use requires separate, prior written authorization from the applicable copyright holder; publishing your changes or giving attribution does not replace that authorization.
+
+The license includes a limited permission for XERJ to index public snapshots and return attributed search results, including through a paid search service. That permission does not give XERJ or downstream users general commercial rights to the code, MIT terms, or ownership. Recipients must follow the license applicable to the code they actually use.
+
+Versions through commit [`5019933e813c718da6b176c246331a2f92f71f81`](https://github.com/yoonshilee/clash-proxy-vless-setup/commit/5019933e813c718da6b176c246331a2f92f71f81) remain under GPL-3.0. Previously granted rights, including compliant commercial use of that material, are not revoked. Separately licensed third-party files retain their own terms.
+
+Read the [licensing guide](docs/licensing.md) for commercial-use examples, authorization requests, third-party notices, and the limits of the XERJ permission. This noncommercial license is not an OSI-approved open-source license.
+
 ## VPS Installation
 
 Clone the repository on the VPS:

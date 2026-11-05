@@ -2,6 +2,10 @@
 
 The dashboard reports the domains and application bytes observed for new connections through the existing Xray node. It stores minute-level data for 90 days and can send a selected time range or a daily or weekly report through one configured SMTP account. Times are UTC by default.
 
+## License
+
+This dashboard is covered by the repository's [noncommercial license](../../LICENSE). Commercial deployment requires prior, separate written authorization unless an independently applicable earlier license already permits that use. See the [licensing guide](../../docs/licensing.md) for the version boundary, third-party terms, and the limited XERJ indexing permission. A new dashboard installation includes a copy of the project license in its application directory.
+
 ## Requirements
 
 Install the proxy and subscription first. The dashboard installer currently supports a Debian-family VPS with systemd, an active UFW firewall with IPv4 and IPv6 enabled, Python 3.11 or newer with `venv`, Caddy, and a public IPv4 address recorded in `server/config/setup.conf`. The existing Xray configuration and UFW rules must pass the installer's checks. The dashboard does not support firewalld. Ports 9443 and 32854–32858 must be available. DNS for the generated `traffic.<public IPv4>.sslip.io` hostname must resolve to the VPS, and Caddy must be able to obtain and renew a public certificate. Allow TCP ports 80 and 9443 through any provider firewall as well as UFW.

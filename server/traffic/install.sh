@@ -143,6 +143,7 @@ tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.sqlite3*' --exclude='
     -cf - -C "$SCRIPT_DIR" dashboard traffic systemd manage.py requirements.txt \
     collector.py collector_async.py original.py prepare_original.py gate.py gate_setup.py \
     start-gate.sh prepare-firewall.sh activate-monitoring.sh | tar -xf - -C "$APP_ROOT/app"
+install -m 0644 "$REPO_ROOT/LICENSE" "$APP_ROOT/app/LICENSE"
 chmod -R a+rX "$APP_ROOT/app"
 "$PYTHON" -m venv "$APP_ROOT/venv"
 "$APP_ROOT/venv/bin/python" -m pip install --disable-pip-version-check --no-index --find-links "$stage/wheels" -q -r "$APP_ROOT/app/requirements.txt"
