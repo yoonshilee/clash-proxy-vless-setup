@@ -43,6 +43,7 @@ proxies:
   reality-opts:
     public-key: '<generated-public-key>'
     short-id: '<generated-short-id>'
+    support-x25519mlkem768: true
 proxy-groups:
 - name: PROXY
   type: select

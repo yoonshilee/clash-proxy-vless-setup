@@ -295,6 +295,7 @@ configure_xray() {
     info "Writing Xray config..."
     install -d -m 0755 "${config_dir}"
 
+    # Mihomo advertises REALITY client version 1.8.2.
     cat > "${json}" <<EOF
 {
   "log": {
@@ -326,6 +327,7 @@ configure_xray() {
           "target": "${reality_dest}",
           "xver": 0,
           "serverNames": ["${reality_server_name}"],
+          "minClientVer": "1.8.2",
           "privateKey": "${reality_private_key}",
           "shortIds": ["${reality_short_id}"]
         },
@@ -426,6 +428,7 @@ ${field_indent}packet-encoding: xudp
 ${field_indent}reality-opts:
 ${field_indent}  public-key: ${q_reality_public_key}
 ${field_indent}  short-id: ${q_reality_short_id}
+${field_indent}  support-x25519mlkem768: true
 EOF
 }
 

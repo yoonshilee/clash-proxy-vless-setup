@@ -82,6 +82,17 @@ grep -Fq 'name: PROXY' "${TEMP_DIR}/rendered/mihomo-provider.yaml"
 grep -Fq "server: '${public_ipv6}'" "${TEMP_DIR}/rendered/clash-verge-check.yaml"
 grep -Fq "IP-CIDR6,${public_ipv6}/128,DIRECT,no-resolve" "${TEMP_DIR}/rendered/clash-verge-check.yaml"
 grep -Fq "IP-CIDR6,${public_ipv6}/128,DIRECT,no-resolve" "${TEMP_DIR}/rendered/mihomo-provider.yaml"
+for profile in "${subscription_file}" "${provider_file}" \
+    "${ipv4_only_subscription_file}" "${ipv4_only_provider_file}" \
+    "${TEMP_DIR}/rendered/clash-verge.yaml" "${TEMP_DIR}/rendered/clash-verge-check.yaml" \
+    "${REPO_ROOT}/client/active-config/clash-verge.yaml" \
+    "${REPO_ROOT}/client/active-config/clash-verge-check.yaml"; do
+    awk '
+        /type: vless/ { nodes++ }
+        /support-x25519mlkem768: true/ { supported++ }
+        END { exit !(nodes && supported == nodes) }
+    ' "${profile}" || exit 1
+done
 grep -Fq 'DOMAIN-SUFFIX,apps.apple.com,DIRECT' "${TEMP_DIR}/rendered/clash-verge-check.yaml"
 grep -Fq 'DOMAIN-SUFFIX,itunes.apple.com,DIRECT' "${TEMP_DIR}/rendered/clash-verge-check.yaml"
 grep -Fq 'DOMAIN-SUFFIX,mail.me.com,DIRECT' "${TEMP_DIR}/rendered/clash-verge-check.yaml"

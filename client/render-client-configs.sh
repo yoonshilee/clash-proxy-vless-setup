@@ -48,6 +48,7 @@ ${field_indent}packet-encoding: xudp
 ${field_indent}reality-opts:
 ${field_indent}  public-key: ${q_reality_public_key}
 ${field_indent}  short-id: ${q_reality_short_id}
+${field_indent}  support-x25519mlkem768: true
 EOF
 }
 

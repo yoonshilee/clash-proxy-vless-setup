@@ -40,6 +40,12 @@ class SecureDashboardTests(TestCase):
         plain = Client(HTTP_HOST="traffic.example.com:9443")
         self.assertEqual(plain.get("/").status_code, 301)
 
+    def test_logout_redirects_to_login_and_clears_session(self):
+        """End the session and return to the login page after signing out."""
+        self.client.force_login(self.user)
+        self.assertRedirects(self.client.post(reverse("logout")), reverse("login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_invalid_client_header_uses_a_shared_fallback(self):
         """Treat missing or malformed proxy addresses as one client."""
         request = type("Request", (), {"META": {"HTTP_X_TRAFFIC_CLIENT_IP": "spoofed"}})()
