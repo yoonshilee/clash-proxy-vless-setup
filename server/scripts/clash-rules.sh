@@ -51,6 +51,18 @@ CLASH_NPM_DIRECT_SUFFIXES=(
     "captcha-delivery.com"
 )
 
+CLASH_HK_MACAO_EDUCATION_DIRECT_SUFFIXES=(
+    "edu.hk"
+    "edu.mo"
+    "hku.hk"
+    "eduhk.hk"
+    "ust.hk"
+    "hkapa.edu"
+    "hkac.edu"
+    "hksyu.edu"
+    "umac.mo"
+)
+
 CLASH_HOMEBREW_DIRECT_SUFFIXES=(
     "formulae.brew.sh"
     "ghcr.io"
@@ -486,7 +498,7 @@ emit_clash_rule_lines() {
         printf '%sDOMAIN-SUFFIX,%s,DIRECT\n' "${prefix}" "${domain}"
     done
 
-    for domain in "${CLASH_APPLE_DIRECT_SUFFIXES[@]}" "${CLASH_NPM_DIRECT_SUFFIXES[@]}"; do
+    for domain in "${CLASH_APPLE_DIRECT_SUFFIXES[@]}" "${CLASH_NPM_DIRECT_SUFFIXES[@]}" "${CLASH_HK_MACAO_EDUCATION_DIRECT_SUFFIXES[@]}"; do
         [[ -n "${domain}" ]] || continue
         [[ "${seen_domains}" == *$'\n'"${domain}"$'\n'* ]] && continue
         seen_domains+="${domain}"$'\n'

@@ -156,17 +156,23 @@ for profile in "${subscription_file}" \
     for domain in formulae.brew.sh ghcr.io pkg-containers.githubusercontent.com; do
         grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
     done
+    for domain in edu.hk edu.mo hku.hk eduhk.hk ust.hk hkapa.edu hkac.edu hksyu.edu umac.mo; do
+        grep -Fq "DOMAIN-SUFFIX,${domain},DIRECT" "${profile}"
+    done
     awk '
         /DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,DIRECT/ { homebrew = NR }
         /DOMAIN-SUFFIX,githubusercontent.com,PROXY/ { githubusercontent = NR }
         /DOMAIN-SUFFIX,github.com,PROXY/ { github = NR }
         /DOMAIN-SUFFIX,openai.com,PROXY/ { openai = NR }
         /GEOSITE,cn,DIRECT/ { domestic = NR }
+        /DOMAIN-SUFFIX,edu.mo,DIRECT/ { macao_education = NR }
+        /DOMAIN-SUFFIX,edu.hk,DIRECT/ { hong_kong_education = NR }
         /DOMAIN-SUFFIX,.*,DIRECT/ { last_direct = NR }
         /GEOIP,CN,DIRECT,no-resolve/ { china_ip = NR }
         /MATCH,PROXY/ { fallback = NR }
         END { exit !(homebrew && githubusercontent && homebrew < githubusercontent &&
             github && openai && github < domestic && openai < domestic &&
+            macao_education && hong_kong_education && macao_education < fallback && hong_kong_education < fallback &&
             last_direct < domestic && domestic < china_ip && china_ip < fallback) }
     ' "${profile}"
 done

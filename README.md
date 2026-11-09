@@ -119,6 +119,8 @@ Server-managed rules explicitly route Dianping, Meituan, Amap, and their support
 
 Homebrew's application, formula API, GitHub container registry, and container download host use `DIRECT`. The registry and download host are shared with other applications. Homebrew downloads from other hosts follow their usual rules.
 
+Hong Kong and Macao education domains under `edu.hk` and `edu.mo` use `DIRECT`, along with listed institution domains that use other suffixes. The additional domains are based on the [Hong Kong Education Bureau's institution list](https://www.studyinhongkong.edu.hk/en/hong-kong-education/universities-and-higher-education.php) and [Macao's education institution directory](https://portal.dsedj.gov.mo/webdsejspace/site/studyinmacau/en/campus-information.html).
+
 ## Personal Routing Rules
 
 Personal domain rules are stored separately from the VPS subscription. Subscription updates cannot overwrite them.
