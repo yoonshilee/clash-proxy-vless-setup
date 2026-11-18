@@ -116,7 +116,7 @@ The generated subscription profile includes:
 - `proxy-groups`
 - `rules`
 
-On an iPhone or iPad using Shadowrocket, add a server of type **Subscribe** and paste the same full `.yaml` subscription URL directly into Shadowrocket. The server returns a native node list when Shadowrocket fetches that URL with its default `User-Agent`. It shares the server addresses, credentials, and VLESS transport settings with the Clash profiles and uses Shadowrocket's **Chrome140** fingerprint for `X25519MLKEM768`. Use a Shadowrocket version that lists Chrome140 under the node's TLS fingerprint settings. Shadowrocket keeps its own routing configuration.
+On an iPhone or iPad using Shadowrocket, add a server of type **Subscribe** and paste the same full `.yaml` subscription URL directly into Shadowrocket. Enter the display name in **Remarks**: Shadowrocket can show the host name when this field is blank, even if the server sends a subscription title. The server returns a native node list when Shadowrocket fetches that URL with its default `User-Agent`. It shares the server addresses, credentials, and VLESS transport settings with the Clash profiles and uses Shadowrocket's **Chrome140** fingerprint for `X25519MLKEM768`. Use a Shadowrocket version that lists Chrome140 under the node's TLS fingerprint settings. Shadowrocket keeps its own routing configuration.
 
 Other clients receive Clash YAML, on both computers and phones. They must support Clash YAML subscriptions, VLESS + REALITY, and the `X25519MLKEM768` key share. A browser or a client with a custom `User-Agent` that does not identify it as Shadowrocket also receives YAML.
 
