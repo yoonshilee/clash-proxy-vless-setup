@@ -51,10 +51,21 @@ assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}.yaml" 200 'full subscription'
 assert_subscription_title
 grep -Eq '^proxies:' "${TEMP_DIR}/response"
 grep -Eq '^rules:' "${TEMP_DIR}/response"
+cp "${TEMP_DIR}/response" "${TEMP_DIR}/clash"
 shadowrocket_agent='Shadowrocket/3488 CFNetwork/3896.300.31 Darwin/27.3.0'
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}.yaml" 200 'same subscription from Shadowrocket' "${shadowrocket_agent}"
 assert_subscription_title
 grep -Eq '^[A-Za-z0-9+/]+=*$' "${TEMP_DIR}/response"
+cp "${TEMP_DIR}/response" "${TEMP_DIR}/shadowrocket"
+
+named_path="/${SUBSCRIPTION_TEST_TOKEN}/digital%20ocean.yaml"
+assert_http_status "${named_path}" 200 'named subscription for Clash'
+assert_subscription_title
+cmp "${TEMP_DIR}/clash" "${TEMP_DIR}/response"
+assert_http_status "${named_path}" 200 'same named subscription from Shadowrocket' "${shadowrocket_agent}"
+assert_subscription_title
+cmp "${TEMP_DIR}/shadowrocket" "${TEMP_DIR}/response"
+
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}-provider.yaml" 200 'node provider'
 grep -Eq '^proxies:' "${TEMP_DIR}/response"
 ! grep -Eq '^rules:' "${TEMP_DIR}/response"
@@ -69,5 +80,9 @@ assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}.yaml.bak" 404 'subscription back
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}-provider.yaml.bak" 404 'provider backup'
 assert_http_status "/wrong-${SUBSCRIPTION_TEST_TOKEN}.yaml" 404 'unknown subscription from Shadowrocket' "${shadowrocket_agent}"
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}-shadowrocket.txt" 404 'internal Shadowrocket file' "${shadowrocket_agent}"
+assert_http_status "/wrong-${SUBSCRIPTION_TEST_TOKEN}/digital%20ocean.yaml" 404 'named subscription with unknown token'
+assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}/" 404 'token directory'
+assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}/sub/digital%20ocean.yaml" 404 'nested path under token directory'
+assert_http_status "${named_path}.bak" 404 'named subscription backup'
 
 echo 'Validated subscription access: exact tokenized paths only; public discovery paths return 404.'

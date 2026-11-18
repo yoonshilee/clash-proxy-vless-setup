@@ -674,16 +674,8 @@ validate_proxy_provider_yaml() {
     info "Validated Mihomo proxy provider YAML."
 }
 
-write_subscription_site() {
-    local site_file="$1"
-    local sub_dir="$2"
-    local subscription_sites="$3"
-    local metadata=""
-    local fallback_name=""
-    local encoded_name=""
-    local encoded_title=""
-
-    metadata="$(printf '%s' "${SUBSCRIPTION_NAME}" | python3 -c '
+subscription_name_metadata() {
+    printf '%s' "${SUBSCRIPTION_NAME}" | python3 -c '
 from base64 import b64encode
 import re
 import sys
@@ -693,19 +685,37 @@ name = sys.stdin.read().strip()
 if not name or len(name.encode()) > 128 or any(ord(char) < 32 or ord(char) == 127 for char in name):
     sys.exit("SUBSCRIPTION_NAME must be a non-empty display name of at most 128 UTF-8 bytes.")
 fallback = re.sub(r"[^A-Za-z0-9 _.-]+", "_", name).strip(" ._") or "Subscription"
-print(fallback, quote(name, safe=""), b64encode(name.encode()).decode(), sep="\t")
-')" || error 'Could not encode the subscription display name.'
-    IFS=$'\t' read -r fallback_name encoded_name encoded_title <<< "${metadata}"
+filename = quote(re.sub(r"[/\\]", "-", name), safe="") + ".yaml"
+print(fallback, quote(name, safe=""), b64encode(name.encode()).decode(), filename, sep="\t")
+'
+}
+
+write_subscription_site() {
+    local site_file="$1"
+    local sub_dir="$2"
+    local subscription_sites="$3"
+    local metadata=""
+    local fallback_name=""
+    local encoded_name=""
+    local encoded_title=""
+    local filename=""
+    local token_pattern="${sub_token//./[.]}"
+
+    metadata="$(subscription_name_metadata)" || error 'Could not encode the subscription display name.'
+    IFS=$'\t' read -r fallback_name encoded_name encoded_title filename <<< "${metadata}"
 
     cat > "${site_file}" <<EOF
 ${subscription_sites} {
     @subscription path /${sub_token}.yaml /${sub_token}-provider.yaml
+    @named_subscription path_regexp "^/${token_pattern}/[^/]+[.]yaml$"
     @shadowrocket {
         path /${sub_token}.yaml
         header_regexp User-Agent "(?i)^Shadowrocket(/|[[:space:]]|$)"
     }
 
     route {
+        rewrite @named_subscription /${sub_token}.yaml
+
         handle @shadowrocket {
             root * ${sub_dir}
             rewrite * /${sub_token}-shadowrocket.txt
@@ -897,13 +907,15 @@ print_summary() {
     local provider_url=""
     local ipv6_subscription_url=""
     local ipv6_provider_url=""
+    local filename=""
 
+    filename="$(subscription_name_metadata | cut -f4)" || error 'Could not encode the subscription display name.'
     domain="$(sslip_domain_for_address "${public_ip}")"
-    subscription_url="https://${domain}:${subscription_port}/${sub_token}.yaml"
+    subscription_url="https://${domain}:${subscription_port}/${sub_token}/${filename}"
     provider_url="https://${domain}:${subscription_port}/${sub_token}-provider.yaml"
     if [[ -n "${public_ipv6}" ]]; then
         ipv6_domain="$(sslip_domain_for_address "${public_ipv6}")"
-        ipv6_subscription_url="https://${ipv6_domain}:${subscription_port}/${sub_token}.yaml"
+        ipv6_subscription_url="https://${ipv6_domain}:${subscription_port}/${sub_token}/${filename}"
         ipv6_provider_url="https://${ipv6_domain}:${subscription_port}/${sub_token}-provider.yaml"
     fi
 

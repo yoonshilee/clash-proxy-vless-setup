@@ -64,7 +64,7 @@ Common settings:
 
 `CLASH_DIRECT_EXTRA_DOMAINS` changes the server-managed defaults in the published subscription. Personal computer rules belong in `client/user-config/` instead.
 
-Set `SUBSCRIPTION_NAME='digital ocean'` to publish `digital ocean` as the subscription display name. It does not change the URL or the names of its nodes. Clients that read the HTTP subscription title can use it on import. An already saved profile may keep its local name; rename it in the client if needed.
+Set `SUBSCRIPTION_NAME='digital ocean'` to publish `digital ocean` as the subscription display name. The installer prints a full URL ending in `/<private-token>/digital%20ocean.yaml`. Clients can read the title from the HTTP response or the URL's filename. Existing URLs continue to work, and existing profiles may keep their local names. The setting does not rename nodes.
 
 Notes:
 
@@ -96,7 +96,7 @@ To install the optional dashboard on a supported Debian-family VPS, follow the [
 
 All URLs reuse `SUB_TOKEN`. Keep them private. Every subscription contains both IPv4 and IPv6 nodes when IPv6 publishing is enabled. The address family of the subscription URL selects how the client fetches the file.
 
-The subscription service only serves the two exact tokenized paths. The homepage, `/index.html`, unknown tokens, and other files return HTTP 404. Updating with the matching installer preserves existing subscription URLs and removes the credential-bearing homepage created by older versions. Custom tokens may contain only letters, digits, dots, underscores, or hyphens.
+The subscription service accepts a single `.yaml` filename below `/<private-token>/` for the full subscription. The older `/<private-token>.yaml` URL and the exact provider URL also work. The homepage, `/index.html`, token directories, unknown tokens, and other files return HTTP 404. Custom tokens may contain only letters, digits, dots, underscores, or hyphens.
 
 Subscription URLs are printed in the installer's terminal output, not on a public webpage. Keep that output out of public CI/CD logs. Closing the homepage does not revoke credentials already downloaded; rotating `SUB_TOKEN` revokes old download links, while rotating `XRAY_UUID` also requires updating installed clients.
 
@@ -117,6 +117,8 @@ The generated subscription profile includes:
 - `rules`
 
 On an iPhone or iPad using Shadowrocket, add a server of type **Subscribe** and paste the same full `.yaml` subscription URL directly into Shadowrocket. Enter the display name in **Remarks**: Shadowrocket can show the host name when this field is blank, even if the server sends a subscription title. The server returns a native node list when Shadowrocket fetches that URL with its default `User-Agent`. It shares the server addresses, credentials, and VLESS transport settings with the Clash profiles and uses Shadowrocket's **Chrome140** fingerprint for `X25519MLKEM768`. Use a Shadowrocket version that lists Chrome140 under the node's TLS fingerprint settings. Shadowrocket keeps its own routing configuration.
+
+When adding the same URL from the **Config** tab, Shadowrocket can use the filename of the pasted URL as the subscription name. Use the named URL printed by the installer for this import path.
 
 Other clients receive Clash YAML, on both computers and phones. They must support Clash YAML subscriptions, VLESS + REALITY, and the `X25519MLKEM768` key share. A browser or a client with a custom `User-Agent` that does not identify it as Shadowrocket also receives YAML.
 
