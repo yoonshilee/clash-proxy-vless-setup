@@ -31,7 +31,7 @@ subscription_port="8443"
 sub_token="test-token"
 CLASH_PROXY_NAME="Test node & IPv4"
 
-[[ "$(SUBSCRIPTION_NAME='digital ocean' subscription_name_metadata | cut -f4)" == 'digital%20ocean.yaml' ]]
+[[ "$(SUBSCRIPTION_NAME='My VPS' subscription_name_metadata | cut -f4)" == 'My%20VPS.yaml' ]]
 
 subscription_file="${TEMP_DIR}/test-token.yaml"
 write_subscription_yaml "${subscription_file}"

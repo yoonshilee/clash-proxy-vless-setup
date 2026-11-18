@@ -58,7 +58,8 @@ assert_subscription_title
 grep -Eq '^[A-Za-z0-9+/]+=*$' "${TEMP_DIR}/response"
 cp "${TEMP_DIR}/response" "${TEMP_DIR}/shadowrocket"
 
-named_path="/${SUBSCRIPTION_TEST_TOKEN}/digital%20ocean.yaml"
+named_filename='VLESS%20REALITY.yaml'
+named_path="/${SUBSCRIPTION_TEST_TOKEN}/${named_filename}"
 assert_http_status "${named_path}" 200 'named subscription for Clash'
 assert_subscription_title
 cmp "${TEMP_DIR}/clash" "${TEMP_DIR}/response"
@@ -80,9 +81,9 @@ assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}.yaml.bak" 404 'subscription back
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}-provider.yaml.bak" 404 'provider backup'
 assert_http_status "/wrong-${SUBSCRIPTION_TEST_TOKEN}.yaml" 404 'unknown subscription from Shadowrocket' "${shadowrocket_agent}"
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}-shadowrocket.txt" 404 'internal Shadowrocket file' "${shadowrocket_agent}"
-assert_http_status "/wrong-${SUBSCRIPTION_TEST_TOKEN}/digital%20ocean.yaml" 404 'named subscription with unknown token'
+assert_http_status "/wrong-${SUBSCRIPTION_TEST_TOKEN}/${named_filename}" 404 'named subscription with unknown token'
 assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}/" 404 'token directory'
-assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}/sub/digital%20ocean.yaml" 404 'nested path under token directory'
+assert_http_status "/${SUBSCRIPTION_TEST_TOKEN}/sub/${named_filename}" 404 'nested path under token directory'
 assert_http_status "${named_path}.bak" 404 'named subscription backup'
 
 echo 'Validated subscription access: exact tokenized paths only; public discovery paths return 404.'

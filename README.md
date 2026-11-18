@@ -64,7 +64,7 @@ Common settings:
 
 `CLASH_DIRECT_EXTRA_DOMAINS` changes the server-managed defaults in the published subscription. Personal computer rules belong in `client/user-config/` instead.
 
-Set `SUBSCRIPTION_NAME='digital ocean'` to publish `digital ocean` as the subscription display name. The installer prints a full URL ending in `/<private-token>/digital%20ocean.yaml`. Clients can read the title from the HTTP response or the URL's filename. Existing URLs continue to work, and existing profiles may keep their local names. The setting does not rename nodes.
+The default subscription display name is `VLESS REALITY`. To customize it, set `SUBSCRIPTION_NAME='My VPS'`. The installer prints a full URL ending in `/<private-token>/My%20VPS.yaml` for that example. Clients can read the title from the HTTP response or the URL's filename. Existing URLs continue to work, and existing profiles may keep their local names. The setting does not rename nodes.
 
 Notes:
 
@@ -197,7 +197,7 @@ Verify access to a running subscription service using private environment values
 ```bash
 SUBSCRIPTION_TEST_BASE_URL='https://<subscription-host>:<port>' \
 SUBSCRIPTION_TEST_TOKEN='<private-token>' \
-SUBSCRIPTION_TEST_NAME='digital ocean' \
+SUBSCRIPTION_TEST_NAME='VLESS REALITY' \
 bash server/tests/subscription-access.tests.sh
 ```
 
