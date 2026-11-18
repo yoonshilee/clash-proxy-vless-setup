@@ -29,6 +29,7 @@ reality_public_key="test-public-key"
 reality_short_id="0123456789abcdef"
 subscription_port="8443"
 sub_token="test-token"
+CLASH_PROXY_NAME="Test node & IPv4"
 
 subscription_file="${TEMP_DIR}/test-token.yaml"
 write_subscription_yaml "${subscription_file}"
@@ -38,6 +39,9 @@ bash "${REPO_ROOT}/client/validate-subscription.sh" "${subscription_file}"
 provider_file="${TEMP_DIR}/test-token-provider.yaml"
 write_proxy_provider_yaml "${provider_file}"
 validate_proxy_provider_yaml "${provider_file}"
+
+shadowrocket_file="${TEMP_DIR}/test-token-shadowrocket.txt"
+write_shadowrocket_subscription "${shadowrocket_file}"
 
 grep -Fq "server: '203.0.113.10'" "${subscription_file}"
 grep -Fq "server: '2001:db8::10'" "${subscription_file}"
@@ -57,9 +61,44 @@ write_subscription_yaml "${ipv4_only_subscription_file}"
 validate_subscription_yaml "${ipv4_only_subscription_file}"
 write_proxy_provider_yaml "${ipv4_only_provider_file}"
 validate_proxy_provider_yaml "${ipv4_only_provider_file}"
+ipv4_only_shadowrocket_file="${TEMP_DIR}/ipv4-only-shadowrocket.txt"
+write_shadowrocket_subscription "${ipv4_only_shadowrocket_file}"
 [[ "$(grep -c 'type: vless' "${ipv4_only_provider_file}")" -eq 1 ]]
 ! grep -Fq 'IP-CIDR6,' "${ipv4_only_subscription_file}"
 public_ipv6="2001:db8::10"
+
+python3 - "${shadowrocket_file}" "${ipv4_only_shadowrocket_file}" <<'PY'
+import base64
+from pathlib import Path
+import sys
+from urllib.parse import parse_qs, urlsplit
+
+dual_stack, ipv4_only = [
+    base64.b64decode(Path(path).read_bytes().strip(), validate=True).decode().splitlines()
+    for path in sys.argv[1:]
+]
+assert len(dual_stack) == 2, 'Dual-stack subscription must contain two nodes'
+assert ipv4_only == dual_stack[:1], 'IPv4-only subscription must contain only the IPv4 node'
+for link, expected_host, expected_name in zip(
+    dual_stack,
+    ('203.0.113.10', '[2001:db8::10]'),
+    ('Test node & IPv4', 'Test node & IPv4-ipv6'),
+):
+    url = urlsplit(link)
+    assert url.scheme == 'vless', 'Shadowrocket subscription must use VLESS links'
+    authority = base64.urlsafe_b64decode(url.netloc + '=' * (-len(url.netloc) % 4)).decode()
+    assert authority == f':11111111-1111-4111-8111-111111111111@{expected_host}:443'
+    assert parse_qs(url.query, strict_parsing=True) == {
+        'remarks': [expected_name],
+        'tls': ['1'],
+        'xtls': ['2'],
+        'udp': ['3'],
+        'peer': ['www.cloudflare.com'],
+        'pbk': ['test-public-key'],
+        'sid': ['0123456789abcdef'],
+        'fingerprint': ['Chrome140'],
+    }
+PY
 
 RENDER_PUBLIC_IP="${public_ip}" \
 RENDER_PUBLIC_IPV6="${public_ipv6}" \

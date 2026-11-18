@@ -265,6 +265,7 @@ REALITY_SERVER_NAME=${reality_server_name}
 REALITY_DEST=${reality_dest}
 REALITY_FINGERPRINT=${reality_fingerprint}
 SUBSCRIPTION_PORT=${subscription_port}
+SUBSCRIPTION_NAME=$(printf '%q' "${SUBSCRIPTION_NAME}")
 
 # Generated or user-provided runtime values
 XRAY_UUID=${xray_uuid}
@@ -493,6 +494,44 @@ ${proxy_entries}
 EOF
 }
 
+write_shadowrocket_subscription() {
+    local subscription_file="$1"
+
+    SHADOWROCKET_IPV4="${public_ip}" SHADOWROCKET_IPV6="${public_ipv6}" \
+    SHADOWROCKET_NAME="${CLASH_PROXY_NAME}" SHADOWROCKET_PORT="${xray_port}" \
+    SHADOWROCKET_UUID="${xray_uuid}" SHADOWROCKET_SNI="${reality_server_name}" \
+    SHADOWROCKET_PUBLIC_KEY="${reality_public_key}" SHADOWROCKET_SHORT_ID="${reality_short_id}" \
+    python3 - > "${subscription_file}" <<'PY'
+import base64
+import os
+from urllib.parse import quote, urlencode
+
+settings = os.environ
+name = settings['SHADOWROCKET_NAME']
+nodes = [(name, settings['SHADOWROCKET_IPV4'])]
+if settings['SHADOWROCKET_IPV6']:
+    nodes.append((f'{name}-ipv6', f"[{settings['SHADOWROCKET_IPV6']}]"))
+
+links = []
+for name, host in nodes:
+    authority = f":{settings['SHADOWROCKET_UUID']}@{host}:{settings['SHADOWROCKET_PORT']}"
+    encoded = base64.urlsafe_b64encode(authority.encode()).decode().rstrip('=')
+    options = urlencode({
+        'remarks': name,
+        'tls': '1',
+        'xtls': '2',
+        'udp': '3',
+        'peer': settings['SHADOWROCKET_SNI'],
+        'pbk': settings['SHADOWROCKET_PUBLIC_KEY'],
+        'sid': settings['SHADOWROCKET_SHORT_ID'],
+        'fingerprint': 'Chrome140',
+    }, quote_via=quote)
+    links.append(f'vless://{encoded}?{options}')
+
+print(base64.b64encode('\n'.join(links).encode()).decode())
+PY
+}
+
 validate_subscription_yaml() {
     local yaml_file="$1"
     local required_patterns=(
@@ -635,10 +674,76 @@ validate_proxy_provider_yaml() {
     info "Validated Mihomo proxy provider YAML."
 }
 
+write_subscription_site() {
+    local site_file="$1"
+    local sub_dir="$2"
+    local subscription_sites="$3"
+    local metadata=""
+    local fallback_name=""
+    local encoded_name=""
+    local encoded_title=""
+
+    metadata="$(printf '%s' "${SUBSCRIPTION_NAME}" | python3 -c '
+from base64 import b64encode
+import re
+import sys
+from urllib.parse import quote
+
+name = sys.stdin.read().strip()
+if not name or len(name.encode()) > 128 or any(ord(char) < 32 or ord(char) == 127 for char in name):
+    sys.exit("SUBSCRIPTION_NAME must be a non-empty display name of at most 128 UTF-8 bytes.")
+fallback = re.sub(r"[^A-Za-z0-9 _.-]+", "_", name).strip(" ._") or "Subscription"
+print(fallback, quote(name, safe=""), b64encode(name.encode()).decode(), sep="\t")
+')" || error 'Could not encode the subscription display name.'
+    IFS=$'\t' read -r fallback_name encoded_name encoded_title <<< "${metadata}"
+
+    cat > "${site_file}" <<EOF
+${subscription_sites} {
+    @subscription path /${sub_token}.yaml /${sub_token}-provider.yaml
+    @shadowrocket {
+        path /${sub_token}.yaml
+        header_regexp User-Agent "(?i)^Shadowrocket(/|[[:space:]]|$)"
+    }
+
+    route {
+        handle @shadowrocket {
+            root * ${sub_dir}
+            rewrite * /${sub_token}-shadowrocket.txt
+            header Content-Type "text/plain; charset=utf-8"
+            header Cache-Control "no-store"
+            header Vary "User-Agent"
+            header Content-Disposition "attachment; filename=\"${fallback_name}\"; filename*=UTF-8''${encoded_name}"
+            header Profile-Title "base64:${encoded_title}"
+            file_server
+        }
+
+        handle @subscription {
+            root * ${sub_dir}
+            header Content-Type "text/yaml; charset=utf-8"
+            header Cache-Control "no-store"
+            header Vary "User-Agent"
+            header Content-Disposition "attachment; filename=\"${fallback_name}\"; filename*=UTF-8''${encoded_name}"
+            header Profile-Title "base64:${encoded_title}"
+            file_server
+        }
+
+        handle {
+            respond 404
+        }
+    }
+
+    tls {
+        protocols tls1.2 tls1.3
+    }
+}
+EOF
+}
+
 configure_caddy() {
     local sub_dir="/var/lib/clash-sub"
     local yaml_file="${sub_dir}/${sub_token}.yaml"
     local provider_file="${sub_dir}/${sub_token}-provider.yaml"
+    local shadowrocket_file="${sub_dir}/${sub_token}-shadowrocket.txt"
     local domain=""
     local ipv6_domain=""
     local ipv6_http_redirect=""
@@ -661,14 +766,15 @@ configure_caddy() {
     id clashsub &>/dev/null || useradd -r -s /usr/sbin/nologin -d "${sub_dir}" clashsub 2>/dev/null || useradd -r -s /sbin/nologin -d "${sub_dir}" clashsub
     install -d -m 0750 -o clashsub -g caddy "${sub_dir}"
 
-    info "Generating Clash/Mihomo subscription YAML..."
-    rm -f "${sub_dir}"/*.yaml
+    info "Generating Clash/Mihomo and Shadowrocket subscriptions..."
+    rm -f "${sub_dir}"/*.yaml "${sub_dir}"/*-shadowrocket.txt
     write_subscription_yaml "${yaml_file}"
     validate_subscription_yaml "${yaml_file}"
     write_proxy_provider_yaml "${provider_file}"
     validate_proxy_provider_yaml "${provider_file}"
-    chmod 0640 "${yaml_file}" "${provider_file}"
-    chown clashsub:caddy "${yaml_file}" "${provider_file}"
+    write_shadowrocket_subscription "${shadowrocket_file}"
+    chmod 0640 "${yaml_file}" "${provider_file}" "${shadowrocket_file}"
+    chown clashsub:caddy "${yaml_file}" "${provider_file}" "${shadowrocket_file}"
 
     # Remove the credential-bearing homepage left by older installations.
     rm -f "${sub_dir}/index.html"
@@ -696,25 +802,7 @@ ${ipv6_http_redirect}
 import /etc/caddy/Caddyfile.d/*.caddyfile
 EOF
 
-    cat > /etc/caddy/Caddyfile.d/clash-sub.caddyfile <<EOF
-${subscription_sites} {
-    @subscription path /${sub_token}.yaml /${sub_token}-provider.yaml
-    handle @subscription {
-        root * ${sub_dir}
-        header Content-Type "text/yaml; charset=utf-8"
-        header Cache-Control "no-store"
-        file_server
-    }
-
-    handle {
-        respond 404
-    }
-
-    tls {
-        protocols tls1.2 tls1.3
-    }
-}
-EOF
+    write_subscription_site /etc/caddy/Caddyfile.d/clash-sub.caddyfile "${sub_dir}" "${subscription_sites}"
 
     caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
     systemctl daemon-reload
@@ -842,12 +930,14 @@ print_summary() {
     echo "    UDP           : enabled (XUDP)"
     echo "    Config        : /usr/local/etc/xray/config.json"
     echo ""
-    echo "  Clash Subscription"
+    echo "  Subscription (Clash/Mihomo and Shadowrocket)"
+    echo "    Name          : ${SUBSCRIPTION_NAME}"
     echo "    IPv4 URL      : ${subscription_url}"
     if [[ -n "${ipv6_subscription_url}" ]]; then
         echo "    IPv6 URL      : ${ipv6_subscription_url}"
     fi
-    echo "    Includes      : proxies, proxy-groups, rules"
+    echo "    Clash/Mihomo  : proxies, proxy-groups, rules"
+    echo "    Shadowrocket  : nodes with Chrome140, detected automatically"
     echo "    IPv4 Provider : ${provider_url}"
     if [[ -n "${ipv6_provider_url}" ]]; then
         echo "    IPv6 Provider : ${ipv6_provider_url}"

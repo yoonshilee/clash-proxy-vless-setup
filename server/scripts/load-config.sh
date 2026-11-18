@@ -29,6 +29,7 @@ load_project_config() {
     : "${REALITY_DEST:=www.cloudflare.com:443}"
     : "${REALITY_FINGERPRINT:=chrome}"
     : "${SUBSCRIPTION_PORT:=8443}"
+    : "${SUBSCRIPTION_NAME:=Clash VLESS REALITY}"
     : "${XRAY_UUID:=AUTO_GENERATE}"
     : "${REALITY_PRIVATE_KEY:=AUTO_GENERATE}"
     : "${REALITY_PUBLIC_KEY:=AUTO_GENERATE}"

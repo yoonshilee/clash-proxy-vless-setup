@@ -11,6 +11,7 @@ REALITY_SERVER_NAME=www.cloudflare.com
 REALITY_DEST=www.cloudflare.com:443
 REALITY_FINGERPRINT=chrome
 SUBSCRIPTION_PORT=8443
+SUBSCRIPTION_NAME='Clash VLESS REALITY'
 
 # Use AUTO_GENERATE to let the installer create a random value during installation.
 XRAY_UUID=AUTO_GENERATE

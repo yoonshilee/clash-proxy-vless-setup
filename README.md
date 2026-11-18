@@ -1,13 +1,13 @@
 # Clash VLESS REALITY Setup
 
-Install Xray `VLESS + REALITY` on a VPS and publish a Clash Verge / Mihomo compatible subscription profile.
+Install Xray `VLESS + REALITY` on a VPS and publish subscriptions for Clash Verge, Mihomo, and Shadowrocket.
 
 ## Overview
 
 This repository has two separate sides:
 
 - VPS side: installs and configures Xray, Caddy, firewall rules, and the subscription endpoint.
-- Personal computer side: imports the generated subscription URL into Clash Verge, Mihomo, or another Clash-compatible client.
+- Client side: imports the generated subscription into Clash Verge, Mihomo, or Shadowrocket.
 
 The optional [domain traffic dashboard](server/traffic/README.md) shows measured traffic and can send email reports. It is installed separately on a supported VPS after the proxy.
 
@@ -58,10 +58,13 @@ Common settings:
 - `REALITY_SERVER_NAME`
 - `REALITY_DEST`
 - `SUBSCRIPTION_PORT`
+- `SUBSCRIPTION_NAME`
 - `CLASH_PROXY_NAME`
 - `CLASH_DIRECT_EXTRA_DOMAINS`
 
 `CLASH_DIRECT_EXTRA_DOMAINS` changes the server-managed defaults in the published subscription. Personal computer rules belong in `client/user-config/` instead.
+
+Set `SUBSCRIPTION_NAME='digital ocean'` to publish `digital ocean` as the subscription display name. It does not change the URL or the names of its nodes. Clients that read the HTTP subscription title can use it on import. An already saved profile may keep its local name; rename it in the client if needed.
 
 Notes:
 
@@ -86,14 +89,14 @@ sudo bash server/install-centos.sh
 
 When installation finishes, the script prints the private IPv4 subscription and provider URLs. If `PUBLIC_IPV6` is available, it also prints IPv6 equivalents whose sslip.io hostnames resolve through AAAA records.
 
-- Full subscription URL for Clash Verge and other subscription clients.
+- Full subscription URL for Clash-compatible clients and Shadowrocket. Its format is selected from the client's HTTP `User-Agent`.
 - Node provider URL ending in `-provider.yaml` for a local Mihomo config.
 
 To install the optional dashboard on a supported Debian-family VPS, follow the [dashboard installation and access instructions](server/traffic/README.md). The dashboard installer checks the existing server first and prints the HTTPS address, administrator username, and command to retrieve the initial password. It does not require rerunning the proxy installer.
 
-All URLs reuse `SUB_TOKEN`. Keep them private. The full subscription and provider files contain both IPv4 and IPv6 nodes when IPv6 publishing is enabled, so importing either URL provides both paths.
+All URLs reuse `SUB_TOKEN`. Keep them private. Every subscription contains both IPv4 and IPv6 nodes when IPv6 publishing is enabled. The address family of the subscription URL selects how the client fetches the file.
 
-The subscription service only serves the two exact tokenized YAML paths. The homepage, `/index.html`, unknown tokens, and other files return HTTP 404. Updating with the matching installer removes the credential-bearing homepage created by older versions while preserving existing subscription URLs. Custom tokens may contain only letters, digits, dots, underscores, or hyphens.
+The subscription service only serves the two exact tokenized paths. The homepage, `/index.html`, unknown tokens, and other files return HTTP 404. Updating with the matching installer preserves existing subscription URLs and removes the credential-bearing homepage created by older versions. Custom tokens may contain only letters, digits, dots, underscores, or hyphens.
 
 Subscription URLs are printed in the installer's terminal output, not on a public webpage. Keep that output out of public CI/CD logs. Closing the homepage does not revoke credentials already downloaded; rotating `SUB_TOKEN` revokes old download links, while rotating `XRAY_UUID` also requires updating installed clients.
 
@@ -112,6 +115,10 @@ The generated subscription profile includes:
 - `proxies`
 - `proxy-groups`
 - `rules`
+
+On an iPhone or iPad using Shadowrocket, add a server of type **Subscribe** and paste the same full `.yaml` subscription URL directly into Shadowrocket. The server returns a native node list when Shadowrocket fetches that URL with its default `User-Agent`. It shares the server addresses, credentials, and VLESS transport settings with the Clash profiles and uses Shadowrocket's **Chrome140** fingerprint for `X25519MLKEM768`. Use a Shadowrocket version that lists Chrome140 under the node's TLS fingerprint settings. Shadowrocket keeps its own routing configuration.
+
+Other clients receive Clash YAML, on both computers and phones. They must support Clash YAML subscriptions, VLESS + REALITY, and the `X25519MLKEM768` key share. A browser or a client with a custom `User-Agent` that does not identify it as Shadowrocket also receives YAML.
 
 The VPS installer also writes generated examples to `client/local-config/`. That directory is ignored by Git and is never the source of personal routing rules.
 
@@ -188,10 +195,11 @@ Verify access to a running subscription service using private environment values
 ```bash
 SUBSCRIPTION_TEST_BASE_URL='https://<subscription-host>:<port>' \
 SUBSCRIPTION_TEST_TOKEN='<private-token>' \
+SUBSCRIPTION_TEST_NAME='digital ocean' \
 bash server/tests/subscription-access.tests.sh
 ```
 
-This checks that valid subscription and provider URLs return YAML, while public discovery paths and unknown files return HTTP 404. It does not print private URLs or response bodies.
+This checks both subscription formats and their display name, confirms the provider always returns YAML, and verifies that public discovery paths and unknown files return HTTP 404. Omit `SUBSCRIPTION_TEST_NAME` to check that both title headers agree without testing a specific name. The script does not print private URLs or response bodies.
 
 ## Updating
 
